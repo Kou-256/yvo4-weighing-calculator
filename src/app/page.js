@@ -3,7 +3,7 @@ import Link from 'next/link'
 const calculators = [
   {
     title: 'YVO₄ / GdVO₄',
-    subtitle: 'クエン酸錯体法向けの秤量計算',
+    subtitle: 'クエン酸錯体重合法向けの秤量計算',
     href: '/yvo4-gdvo4',
     status: '利用可能',
     materials: ['Y₂O₃', 'Gd₂O₃', 'V₂O₅'],
