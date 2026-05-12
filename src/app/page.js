@@ -367,19 +367,51 @@ function MainComponent() {
       }));
       return;
     }
+
+    if (!/^\d*\.?\d*$/.test(value)) return;
+
+    if (value === ".") {
+      value = "0.";
+    }
+
+    if (value.endsWith(".")) {
+      const partialValue = value === "." ? "0." : value;
+      const partialNumber = parseFloat(partialValue);
+      if (!isNaN(partialNumber) && partialNumber <= 100) {
+        setConcentrationSets((prev) => ({
+          ...prev,
+          [setNumber]: { ...prev[setNumber], [dopant]: partialValue },
+        }));
+      }
+      return;
+    }
+
     const numValue = parseFloat(value);
     if (isNaN(numValue)) return;
 
     const newValue = Math.min(100, Math.max(0, numValue));
     setConcentrationSets((prev) => ({
       ...prev,
-      [setNumber]: { ...prev[setNumber], [dopant]: newValue },
+      [setNumber]: { ...prev[setNumber], [dopant]: String(newValue) },
     }));
+  };
+
+  const handleConcentrationFocus = (e, setNumber, dopant) => {
+    setSelectedSet(setNumber);
+    const value = String(concentrationSets[setNumber]?.[dopant] ?? "");
+    const numericValue = parseFloat(value || 0);
+
+    if (value === "" || (!isNaN(numericValue) && numericValue === 0)) {
+      handleConcentrationChange(setNumber, dopant, "0.");
+      window.requestAnimationFrame(() => {
+        e.target.setSelectionRange(2, 2);
+      });
+    }
   };
 
   const handleConcentrationBlur = (e, setNumber, dopant) => {
     const value = e.target.value;
-    if (value === "") {
+    if (value === "" || value === "0.") {
       handleConcentrationChange(setNumber, dopant, "0");
     } else {
       const numValue = parseFloat(value);
@@ -659,14 +691,14 @@ function MainComponent() {
                   最初に母材を選択します。GdVO₄ではGdを添加物候補から外します。
                 </p>
               </div>
-              <div className="grid rounded-full border border-[#d2d2d7] bg-[#f5f5f7] p-1 sm:grid-cols-2">
+              <div className="grid w-full max-w-full min-w-0 grid-cols-2 overflow-hidden rounded-full border border-[#d2d2d7] bg-[#f5f5f7] p-1 sm:w-auto">
                 {Object.values(COMPOUNDS).map((item) => (
                   <button
                     key={item.key}
                     onClick={() => switchCompound(item.key)}
-                    className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+                    className={`min-w-0 rounded-full px-3 py-2.5 text-sm font-semibold transition sm:px-5 ${
                       selectedCompound === item.key
-                        ? "bg-white text-[#0071e3] shadow-sm"
+                        ? "bg-white text-[#0071e3] shadow-[0_2px_10px_rgba(0,0,0,0.08)]"
                         : "text-[#6e6e73] hover:text-[#1d1d1f]"
                     }`}
                   >
@@ -784,11 +816,12 @@ function MainComponent() {
                         selectedDopants.map((dopant) => (
                           <label
                             key={dopant}
-                            className="grid grid-cols-[44px_1fr_24px] items-center gap-2 text-sm"
+                            className="grid grid-cols-[34px_minmax(0,1fr)_20px] items-center gap-2 text-sm sm:grid-cols-[44px_minmax(0,1fr)_24px]"
                           >
                             <span className="font-semibold">{dopant}</span>
                             <input
-                              type="number"
+                              type="text"
+                              inputMode="decimal"
                               value={concentrationSets[setNumber][dopant] ?? ""}
                               onChange={(e) =>
                                 handleConcentrationChange(
@@ -797,7 +830,9 @@ function MainComponent() {
                                   e.target.value
                                 )
                               }
-                              onFocus={() => setSelectedSet(setNumber)}
+                              onFocus={(e) =>
+                                handleConcentrationFocus(e, setNumber, dopant)
+                              }
                               onBlur={(e) =>
                                 handleConcentrationBlur(e, setNumber, dopant)
                               }
@@ -822,9 +857,6 @@ function MainComponent() {
                                 );
                               }}
                               className="h-10 rounded-xl border border-[#d2d2d7] bg-white px-3 text-right font-medium outline-none focus:border-[#0071e3]"
-                              step="0.001"
-                              min="0"
-                              max="100"
                               placeholder="0.000"
                             />
                             <span className="text-[#6e6e73]">%</span>
@@ -908,7 +940,7 @@ function MainComponent() {
               </div>
               <button
                 onClick={() => exportToCSV(null)}
-                className="min-h-11 rounded-2xl border border-[#0071e3] bg-white px-4 text-sm font-semibold text-[#0071e3] transition hover:bg-[#f5faff]"
+                className="min-h-11 w-full rounded-2xl border border-[#0071e3] bg-white px-4 text-sm font-semibold text-[#0071e3] transition hover:bg-[#f5faff] sm:w-auto"
               >
                 全セットをCSV出力
               </button>
@@ -921,17 +953,17 @@ function MainComponent() {
                   className="rounded-[24px] border border-[#d2d2d7] bg-[#fbfbfd] p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div>
+                    <div className="min-w-0">
                       <div className="text-lg font-semibold">
                         セット {setNumber}
                       </div>
-                      <div className="mt-1 text-xs font-medium text-[#6e6e73]">
+                      <div className="mt-1 break-words text-xs font-medium text-[#6e6e73]">
                         {getSetDescription(setNumber)}
                       </div>
                     </div>
                     <button
                       onClick={() => exportToCSV(setNumber)}
-                      className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-[#0071e3] shadow-sm"
+                      className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-[#0071e3] shadow-sm"
                     >
                       CSV
                     </button>
@@ -945,14 +977,14 @@ function MainComponent() {
                           className="rounded-2xl border border-[#d2d2d7] bg-white p-3"
                         >
                           <div className="flex items-center justify-between gap-3">
-                            <span className="font-mono text-sm font-semibold">
+                            <span className="min-w-0 font-mono text-sm font-semibold">
                               {material}
                             </span>
-                            <span className="text-right text-sm font-semibold">
+                            <span className="shrink-0 text-right text-sm font-semibold">
                               {formatDisplayValue(calculatedValue)} g
                             </span>
                           </div>
-                          <div className="mt-3 grid grid-cols-[1fr_auto_auto] items-center gap-2">
+                          <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
                             <input
                               type="number"
                               value={measuredValues[setNumber]?.[material] || ""}
@@ -982,7 +1014,7 @@ function MainComponent() {
                             <button
                               aria-label={`${material} weighed`}
                               onClick={() => toggleWeighted(setNumber, material)}
-                              className={`flex h-10 w-10 items-center justify-center rounded-xl border text-sm font-bold transition ${
+                              className={`col-span-2 flex h-10 w-full items-center justify-center rounded-xl border text-sm font-bold transition sm:col-span-1 sm:w-10 ${
                                 weightedMaterials[setNumber]?.[material]
                                   ? "border-[#34c759] bg-[#34c759] text-white"
                                   : "border-[#d2d2d7] bg-white text-transparent"
