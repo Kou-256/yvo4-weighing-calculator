@@ -1,8 +1,8 @@
 import './globals.css'
 
 export const metadata = {
-  title: 'YVO4/GdVO4 秤量計算ツール',
-  description: 'YVO4 と GdVO4 合成用の秤量計算ツール',
+  title: '秤量計算ツール',
+  description: '複数の物質に対応する秤量計算ツール',
 }
 
 export default function RootLayout({ children }) {
