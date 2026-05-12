@@ -688,7 +688,7 @@ function MainComponent() {
               <div>
                 <h2 className="text-lg font-semibold">化合物選択</h2>
                 <p className="mt-1 text-sm text-[#6e6e73]">
-                  最初に母材を選択します。GdVO₄ではGdを添加物候補から外します。
+                  最初に母材を選択してください。
                 </p>
               </div>
               <div className="grid w-full max-w-full min-w-0 grid-cols-2 overflow-hidden rounded-full border border-[#d2d2d7] bg-[#f5f5f7] p-1 sm:w-auto">
