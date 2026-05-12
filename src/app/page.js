@@ -1,54 +1,148 @@
 "use client";
+
 import React from "react";
 
+const SET_NUMBERS = [1, 2, 3, 4];
+
+const COMPOUNDS = {
+  yvo4: {
+    key: "yvo4",
+    formula: "YVO₄",
+    label: "YVO4",
+    hostElement: "Y",
+    hostOxide: "Y₂O₃",
+    filePrefix: "yvo4",
+    tone: "Y site",
+  },
+  gdvo4: {
+    key: "gdvo4",
+    formula: "GdVO₄",
+    label: "GdVO4",
+    hostElement: "Gd",
+    hostOxide: "Gd₂O₃",
+    filePrefix: "gdvo4",
+    tone: "Gd site",
+  },
+};
+
+const DOPANTS = {
+  Bi: "Bi₂O₃",
+  Tm: "Tm₂O₃",
+  Eu: "Eu₂O₃",
+  Er: "Er₂O₃",
+  Yb: "Yb₂O₃",
+  Ho: "Ho₂O₃",
+  Dy: "Dy₂O₃",
+  Tb: "Tb₂O₃",
+  Gd: "Gd₂O₃",
+  Sm: "Sm₂O₃",
+  Nd: "Nd₂O₃",
+  Pr: "Pr₂O₃",
+  Ce: "Ce₂O₃",
+  La: "La₂O₃",
+};
+
+const MATERIALS = {
+  "V₂O₅": 181.8804,
+  "Y₂O₃": 225.8982,
+  "Bi₂O₃": 465.959,
+  "Tm₂O₃": 385.8672,
+  "Eu₂O₃": 351.926,
+  "Er₂O₃": 382.5176,
+  "Yb₂O₃": 394.0782,
+  "Ho₂O₃": 377.8586,
+  "Dy₂O₃": 372.9982,
+  "Tb₂O₃": 365.8678,
+  "Gd₂O₃": 362.4982,
+  "Sm₂O₃": 348.7182,
+  "Nd₂O₃": 336.4782,
+  "Pr₂O₃": 329.8082,
+  "Ce₂O₃": 328.2382,
+  "La₂O₃": 325.8092,
+};
+
+const BASE_METAL_MOL = 0.004;
+
+const createEmptySets = () =>
+  SET_NUMBERS.reduce((sets, setNumber) => {
+    sets[setNumber] = {};
+    return sets;
+  }, {});
+
+const pruneObjectKeyFromSets = (sets, keyToRemove) =>
+  SET_NUMBERS.reduce((nextSets, setNumber) => {
+    const currentSet = { ...(sets?.[setNumber] || {}) };
+    delete currentSet[keyToRemove];
+    nextSets[setNumber] = currentSet;
+    return nextSets;
+  }, {});
+
+const STORAGE_KEYS = {
+  selectedCompound: "yvo4_selectedCompound",
+  selectedDopants: "yvo4_selectedDopants",
+  targetMol: "yvo4_targetMol",
+  concentrationSets: "yvo4_concentrationSets",
+  measuredValues: "yvo4_measuredValues",
+  weightedMaterials: "yvo4_weightedMaterials",
+  showMaterials: "yvo4_showMaterials",
+  results: "yvo4_results",
+};
+
 function MainComponent() {
+  const [selectedCompound, setSelectedCompound] = React.useState("yvo4");
   const [selectedDopants, setSelectedDopants] = React.useState([]);
   const [showMaterials, setShowMaterials] = React.useState(false);
   const [selectedSet, setSelectedSet] = React.useState(1);
   const [results, setResults] = React.useState(null);
   const [targetMol, setTargetMol] = React.useState("0.004");
   const [isCalculating, setIsCalculating] = React.useState(false);
-  const [concentrationSets, setConcentrationSets] = React.useState({
-    1: {},
-    2: {},
-    3: {},
-    4: {},
-  });
+  const [errorMessage, setErrorMessage] = React.useState("");
+  const [concentrationSets, setConcentrationSets] =
+    React.useState(createEmptySets);
   const [showPercentages, setShowPercentages] = React.useState({});
-  const [weightedMaterials, setWeightedMaterials] = React.useState({
-    1: {},
-    2: {},
-    3: {},
-    4: {},
-  });
-  const [measuredValues, setMeasuredValues] = React.useState({
-    1: {},
-    2: {},
-    3: {},
-    4: {},
-  });
+  const [weightedMaterials, setWeightedMaterials] =
+    React.useState(createEmptySets);
+  const [measuredValues, setMeasuredValues] = React.useState(createEmptySets);
   const [showReagentCalculation, setShowReagentCalculation] =
     React.useState(false);
 
-  // LocalStorage keys
-  const STORAGE_KEYS = {
-    selectedDopants: "yvo4_selectedDopants",
-    targetMol: "yvo4_targetMol",
-    concentrationSets: "yvo4_concentrationSets",
-    measuredValues: "yvo4_measuredValues",
-    weightedMaterials: "yvo4_weightedMaterials",
-    showMaterials: "yvo4_showMaterials",
-    results: "yvo4_results",
-  };
+  const compound = COMPOUNDS[selectedCompound];
+  const availableDopants = React.useMemo(
+    () =>
+      Object.keys(DOPANTS).filter(
+        (dopant) => dopant !== compound.hostElement
+      ),
+    [compound.hostElement]
+  );
 
-  // Load data from localStorage on component mount
+  const activeMaterials = React.useMemo(() => {
+    const materialNames = [
+      "V₂O₅",
+      compound.hostOxide,
+      ...availableDopants.map((dopant) => DOPANTS[dopant]),
+    ];
+    return [...new Set(materialNames)].map((name) => ({
+      name,
+      mass: MATERIALS[name],
+    }));
+  }, [availableDopants, compound.hostOxide]);
+
   React.useEffect(() => {
     try {
+      const savedCompound = localStorage.getItem(STORAGE_KEYS.selectedCompound);
+      const initialCompound = COMPOUNDS[savedCompound] ? savedCompound : "yvo4";
+      const initialHostElement = COMPOUNDS[initialCompound].hostElement;
+      setSelectedCompound(initialCompound);
+
       const savedSelectedDopants = localStorage.getItem(
         STORAGE_KEYS.selectedDopants
       );
       if (savedSelectedDopants) {
-        setSelectedDopants(JSON.parse(savedSelectedDopants));
+        setSelectedDopants(
+          JSON.parse(savedSelectedDopants).filter(
+            (dopant) => dopant !== initialHostElement
+          )
+        );
       }
 
       const savedTargetMol = localStorage.getItem(STORAGE_KEYS.targetMol);
@@ -60,7 +154,12 @@ function MainComponent() {
         STORAGE_KEYS.concentrationSets
       );
       if (savedConcentrationSets) {
-        setConcentrationSets(JSON.parse(savedConcentrationSets));
+        setConcentrationSets(
+          pruneObjectKeyFromSets(
+            JSON.parse(savedConcentrationSets),
+            initialHostElement
+          )
+        );
       }
 
       const savedMeasuredValues = localStorage.getItem(
@@ -86,14 +185,27 @@ function MainComponent() {
 
       const savedResults = localStorage.getItem(STORAGE_KEYS.results);
       if (savedResults) {
-        setResults(JSON.parse(savedResults));
+        const parsedResults = JSON.parse(savedResults);
+        if (
+          parsedResults.compoundKey === initialCompound ||
+          (!parsedResults.compoundKey && initialCompound === "yvo4")
+        ) {
+          setResults(parsedResults);
+        }
       }
     } catch (error) {
       console.error("Error loading data from localStorage:", error);
     }
   }, []);
 
-  // Save selectedDopants to localStorage
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.selectedCompound, selectedCompound);
+    } catch (error) {
+      console.error("Error saving selectedCompound to localStorage:", error);
+    }
+  }, [selectedCompound]);
+
   React.useEffect(() => {
     try {
       localStorage.setItem(
@@ -105,7 +217,6 @@ function MainComponent() {
     }
   }, [selectedDopants]);
 
-  // Save targetMol to localStorage
   React.useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEYS.targetMol, targetMol);
@@ -114,7 +225,6 @@ function MainComponent() {
     }
   }, [targetMol]);
 
-  // Save concentrationSets to localStorage
   React.useEffect(() => {
     try {
       localStorage.setItem(
@@ -126,7 +236,6 @@ function MainComponent() {
     }
   }, [concentrationSets]);
 
-  // Save measuredValues to localStorage
   React.useEffect(() => {
     try {
       localStorage.setItem(
@@ -138,7 +247,6 @@ function MainComponent() {
     }
   }, [measuredValues]);
 
-  // Save weightedMaterials to localStorage
   React.useEffect(() => {
     try {
       localStorage.setItem(
@@ -150,7 +258,6 @@ function MainComponent() {
     }
   }, [weightedMaterials]);
 
-  // Save showMaterials to localStorage
   React.useEffect(() => {
     try {
       localStorage.setItem(
@@ -162,82 +269,48 @@ function MainComponent() {
     }
   }, [showMaterials]);
 
-  // Save results to localStorage
   React.useEffect(() => {
     try {
       if (results) {
         localStorage.setItem(STORAGE_KEYS.results, JSON.stringify(results));
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.results);
       }
     } catch (error) {
       console.error("Error saving results to localStorage:", error);
     }
   }, [results]);
 
-  const baseMetalMol = 0.004;
+  const switchCompound = (compoundKey) => {
+    if (compoundKey === selectedCompound) return;
 
-  const dopants = {
-    Bi: "Bi₂O₃",
-    Tm: "Tm₂O₃",
-    Eu: "Eu₂O₃",
-    Er: "Er₂O₃",
-    Yb: "Yb₂O₃",
-    Ho: "Ho₂O₃",
-    Dy: "Dy₂O₃",
-    Tb: "Tb₂O₃",
-    Gd: "Gd₂O₃",
-    Sm: "Sm₂O₃",
-    Nd: "Nd₂O₃",
-    Pr: "Pr₂O₃",
-    Ce: "Ce₂O₃",
-    La: "La₂O₃",
-  };
-
-  const materials = {
-    "V₂O₅": 181.8804,
-    "Y₂O₃": 225.8982,
-    "Bi₂O₃": 465.959,
-    "Tm₂O₃": 385.8672,
-    "Eu₂O₃": 351.926,
-    "Er₂O₃": 382.5176,
-    "Yb₂O₃": 394.0782,
-    "Ho₂O₃": 377.8586,
-    "Dy₂O₃": 372.9982,
-    "Tb₂O₃": 365.8678,
-    "Gd₂O₃": 362.4982,
-    "Sm₂O₃": 348.7182,
-    "Nd₂O₃": 336.4782,
-    "Pr₂O₃": 329.8082,
-    "Ce₂O₃": 328.2382,
-    "La₂O₃": 325.8092,
+    const nextCompound = COMPOUNDS[compoundKey];
+    setSelectedCompound(compoundKey);
+    setSelectedDopants((prev) =>
+      prev.filter((dopant) => dopant !== nextCompound.hostElement)
+    );
+    setConcentrationSets((prev) =>
+      pruneObjectKeyFromSets(prev, nextCompound.hostElement)
+    );
+    setResults(null);
+    setErrorMessage("");
+    setShowPercentages({});
   };
 
   const resetAllData = () => {
     try {
+      setSelectedCompound("yvo4");
       setSelectedDopants([]);
       setShowMaterials(false);
       setSelectedSet(1);
       setResults(null);
       setTargetMol("0.004");
-      setConcentrationSets({
-        1: {},
-        2: {},
-        3: {},
-        4: {},
-      });
+      setConcentrationSets(createEmptySets());
       setShowPercentages({});
-      setWeightedMaterials({
-        1: {},
-        2: {},
-        3: {},
-        4: {},
-      });
-      setMeasuredValues({
-        1: {},
-        2: {},
-        3: {},
-        4: {},
-      });
+      setWeightedMaterials(createEmptySets());
+      setMeasuredValues(createEmptySets());
       setShowReagentCalculation(false);
+      setErrorMessage("");
 
       Object.values(STORAGE_KEYS).forEach((key) => {
         localStorage.removeItem(key);
@@ -259,30 +332,34 @@ function MainComponent() {
   };
 
   const handleDopantSelection = (dopant) => {
-    if (selectedDopants.includes(dopant)) {
-      setSelectedDopants(selectedDopants.filter((d) => d !== dopant));
-      setConcentrationSets((prev) => {
-        const newSets = { ...prev };
-        [1, 2, 3, 4].forEach((setNumber) => {
-          const newSet = { ...newSets[setNumber] };
-          delete newSet[dopant];
-          newSets[setNumber] = newSet;
-        });
-        return newSets;
+    if (!availableDopants.includes(dopant)) return;
+
+    setResults(null);
+    setSelectedDopants((prevSelected) => {
+      if (prevSelected.includes(dopant)) {
+        return prevSelected.filter((d) => d !== dopant);
+      }
+      return [...prevSelected, dopant];
+    });
+
+    setConcentrationSets((prev) => {
+      const newSets = { ...prev };
+      SET_NUMBERS.forEach((setNumber) => {
+        const currentSet = { ...(newSets[setNumber] || {}) };
+        if (selectedDopants.includes(dopant)) {
+          delete currentSet[dopant];
+        } else {
+          currentSet[dopant] = 0;
+        }
+        newSets[setNumber] = currentSet;
       });
-    } else {
-      setSelectedDopants([...selectedDopants, dopant]);
-      setConcentrationSets((prev) => {
-        const newSets = { ...prev };
-        [1, 2, 3, 4].forEach((setNumber) => {
-          newSets[setNumber] = { ...newSets[setNumber], [dopant]: 0 };
-        });
-        return newSets;
-      });
-    }
+      return newSets;
+    });
   };
 
   const handleConcentrationChange = (setNumber, dopant, value) => {
+    setResults(null);
+
     if (value === "") {
       setConcentrationSets((prev) => ({
         ...prev,
@@ -314,36 +391,44 @@ function MainComponent() {
   };
 
   const calculateMassesForSet = (setNumber, targetMetalMol) => {
-    const results = { concentrations: {}, masses: {} };
-    const currentSet = concentrationSets[setNumber];
-    const currentConcentrations = { ...currentSet };
+    const setResult = { concentrations: {}, masses: {} };
+    const currentSet = concentrationSets[setNumber] || {};
+    const currentConcentrations = selectedDopants.reduce((set, dopant) => {
+      if (dopant !== compound.hostElement) {
+        set[dopant] = currentSet[dopant] ?? 0;
+      }
+      return set;
+    }, {});
 
     const totalDopantConcentration = Object.values(
       currentConcentrations
     ).reduce((sum, concentration) => sum + parseFloat(concentration || 0), 0);
 
-    results.concentrations.V = 50;
+    setResult.concentrations.V = 50;
     Object.entries(currentConcentrations).forEach(([dopant, concentration]) => {
-      results.concentrations[dopant] = parseFloat(concentration || 0);
+      setResult.concentrations[dopant] = parseFloat(concentration || 0);
     });
-    results.concentrations.Y = 50 - totalDopantConcentration;
+    setResult.concentrations[compound.hostElement] =
+      50 - totalDopantConcentration;
 
     Object.entries(currentConcentrations).forEach(([dopant, concentration]) => {
-      const oxide = dopants[dopant];
+      const oxide = DOPANTS[dopant];
       const dopantMetalMol =
         (targetMetalMol * parseFloat(concentration || 0)) / 100;
       const oxideMol = dopantMetalMol / 2;
-      results.masses[oxide] = oxideMol * materials[oxide];
+      setResult.masses[oxide] = oxideMol * MATERIALS[oxide];
     });
 
-    const yMetalMol = (targetMetalMol * (100 - totalDopantConcentration)) / 100;
-    const yOxideMol = yMetalMol / 2;
-    results.masses["Y₂O₃"] = yOxideMol * materials["Y₂O₃"];
+    const hostMetalMol =
+      (targetMetalMol * (100 - totalDopantConcentration)) / 100;
+    const hostOxideMol = hostMetalMol / 2;
+    setResult.masses[compound.hostOxide] =
+      hostOxideMol * MATERIALS[compound.hostOxide];
 
     const vOxideMol = targetMetalMol / 2;
-    results.masses["V₂O₅"] = vOxideMol * materials["V₂O₅"];
+    setResult.masses["V₂O₅"] = vOxideMol * MATERIALS["V₂O₅"];
 
-    return results;
+    return setResult;
   };
 
   const calculateReagentAmounts = (targetMetalMol) => {
@@ -353,7 +438,7 @@ function MainComponent() {
       citricAcid: 3.3622,
       propyleneGlycol: 1.17,
     };
-    const ratio = targetMetalMol / baseMetalMol;
+    const ratio = targetMetalMol / BASE_METAL_MOL;
     return {
       nitricAcid: (baseAmounts.nitricAcid * ratio).toFixed(2),
       water: (baseAmounts.water * ratio).toFixed(2),
@@ -364,14 +449,18 @@ function MainComponent() {
 
   const calculateMasses = () => {
     setIsCalculating(true);
+    setErrorMessage("");
     const targetMetalMol = parseFloat(targetMol);
     if (isNaN(targetMetalMol) || targetMetalMol <= 0) {
-      console.error("目標モル数は正の数値を入力してください。");
+      setErrorMessage("目標モル数は正の数値を入力してください。");
       setIsCalculating(false);
       return;
     }
 
     const allResults = {
+      compoundKey: selectedCompound,
+      compoundFormula: compound.formula,
+      targetMetalMol,
       1: calculateMassesForSet(1, targetMetalMol),
       2: calculateMassesForSet(2, targetMetalMol),
       3: calculateMassesForSet(3, targetMetalMol),
@@ -381,7 +470,7 @@ function MainComponent() {
 
     setTimeout(() => {
       setIsCalculating(false);
-    }, 300);
+    }, 200);
   };
 
   const togglePercentages = (setNumber) => {
@@ -399,12 +488,16 @@ function MainComponent() {
   };
 
   const getSetDescription = (setNumber) => {
+    if (selectedDopants.length === 0) return "純粋系";
+
     const concentrations = concentrationSets[setNumber];
     if (!concentrations || Object.keys(concentrations).length === 0) return "";
     const descriptions = Object.entries(concentrations)
-      .filter(([_, value]) => parseFloat(value) > 0)
+      .filter(([dopant, value]) => {
+        return selectedDopants.includes(dopant) && parseFloat(value) > 0;
+      })
       .map(([dopant, value]) => `${dopant} ${value}%`);
-    return descriptions.length > 0 ? ` (${descriptions.join(", ")})` : "";
+    return descriptions.length > 0 ? descriptions.join(", ") : "純粋系";
   };
 
   const exportToCSV = (setNumber) => {
@@ -423,12 +516,13 @@ function MainComponent() {
       })
       .replace(/\//g, "-");
     csvContent += `出力日時,${timestamp}\n`;
+    csvContent += `化合物,${compound.formula}\n`;
 
-    const headers = ["セット", "材料", "計算値 (g)", "測定値 (g)"];
+    const headers = ["化合物", "セット", "材料", "計算値 (g)", "測定値 (g)"];
     csvContent += headers.join(",") + "\n";
 
     const allMeasurements = [];
-    const setsToExport = setNumber ? [setNumber] : [1, 2, 3, 4];
+    const setsToExport = setNumber ? [setNumber] : SET_NUMBERS;
 
     setsToExport.forEach((set) => {
       if (results[set]) {
@@ -448,6 +542,7 @@ function MainComponent() {
     csvContent += allMeasurements
       .map((m) =>
         [
+          compound.formula,
           m.setNumber,
           m.material,
           formatDisplayValue(m.calculatedValue),
@@ -460,8 +555,8 @@ function MainComponent() {
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = setNumber
-      ? `measurements_set${setNumber}_${targetMol}mol.csv`
-      : `measurements_all_sets_${targetMol}mol.csv`;
+      ? `${compound.filePrefix}_measurements_set${setNumber}_${targetMol}mol.csv`
+      : `${compound.filePrefix}_measurements_all_sets_${targetMol}mol.csv`;
     link.style.display = "none";
     document.body.appendChild(link);
     link.click();
@@ -475,528 +570,575 @@ function MainComponent() {
     }));
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 font-sans">
-      <div className="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-lg">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center">
-          YVO₄ 秤量計算ツール
-        </h1>
-        <p className="text-base text-gray-600 mb-8 text-center">
-          クエン酸錯体重合法による合成
-        </p>
+  const totalDopantForSet = (setNumber) =>
+    selectedDopants.reduce(
+      (sum, dopant) =>
+        sum + parseFloat(concentrationSets[setNumber]?.[dopant] || 0),
+      0
+    );
 
-        <div className="space-y-8">
+  const renderMaterialCalculation = (setNumber) => {
+    const currentSet = concentrationSets[setNumber] || {};
+    const totalDopantConcentration = totalDopantForSet(setNumber);
+    const targetMetalMol = parseFloat(targetMol);
+    const hostRatio = (100 - totalDopantConcentration) / 100;
+
+    return (
+      <div className="space-y-1.5">
+        {selectedDopants.map((dopant) => {
+          const concentration = currentSet[dopant] || 0;
+          if (parseFloat(concentration || 0) <= 0) return null;
+
+          const oxide = DOPANTS[dopant];
+          const molarMass = MATERIALS[oxide];
+          const concentrationDecimal = parseFloat(concentration) / 100;
+          return (
+            <div key={dopant}>
+              {oxide}({concentration}%): {molarMass}[g/mol] × {targetMetalMol}
+              [mol] ÷ 2 ×{" "}
+              {concentrationDecimal < 0.01
+                ? concentrationDecimal.toExponential(2)
+                : concentrationDecimal.toFixed(3)}{" "}
+              ={" "}
+              {formatDisplayValue(
+                ((molarMass * targetMetalMol) / 2) * concentrationDecimal
+              )}
+              [g]
+            </div>
+          );
+        })}
+
+        <div>
+          {compound.hostOxide}({(100 - totalDopantConcentration).toFixed(1)}
+          %): {MATERIALS[compound.hostOxide]}[g/mol] × {targetMetalMol}[mol] ÷
+          2 × {hostRatio < 0.01 ? hostRatio.toExponential(2) : hostRatio.toFixed(3)} ={" "}
+          {formatDisplayValue(
+            ((MATERIALS[compound.hostOxide] * targetMetalMol) / 2) * hostRatio
+          )}
+          [g]
+        </div>
+
+        <div>
+          V₂O₅: {MATERIALS["V₂O₅"]}[g/mol] × {targetMetalMol}[mol] ÷ 2 ={" "}
+          {formatDisplayValue((MATERIALS["V₂O₅"] * targetMetalMol) / 2)}
+          [g]
+        </div>
+      </div>
+    );
+  };
+
+  const reagentAmounts = calculateReagentAmounts(parseFloat(targetMol) || 0);
+
+  return (
+    <main className="min-h-screen bg-[#f5f5f7] px-4 py-6 text-[#1d1d1f] sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+        <header className="flex flex-col gap-4 rounded-[28px] border border-white/80 bg-white/85 px-5 py-6 shadow-[0_18px_60px_rgba(0,0,0,0.08)] backdrop-blur md:flex-row md:items-end md:justify-between md:px-8">
           <div>
-            <label className="block text-md font-medium text-gray-700 mb-3">
-              添加物選択
-            </label>
-            <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
-              {Object.keys(dopants).map((dopant) => (
-                <button
-                  key={dopant}
-                  className={`px-3 py-2 rounded-md text-sm font-semibold transition-all duration-200 ${
-                    selectedDopants.includes(dopant)
-                      ? "bg-blue-600 text-white shadow-md ring-2 ring-blue-300"
-                      : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                  }`}
-                  onClick={() => handleDopantSelection(dopant)}
-                >
-                  {dopant}
-                </button>
-              ))}
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#6e6e73]">
+              Citrate complex method
+            </p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+              YVO₄ / GdVO₄ 秤量計算ツール
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#6e6e73] sm:text-base">
+              母材を選び、4セット分の添加濃度と秤量値をまとめて管理できます。
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[#d2d2d7] bg-[#fbfbfd] px-4 py-3 text-sm">
+            <div className="text-[#6e6e73]">現在の母材</div>
+            <div className="mt-1 text-2xl font-semibold">{compound.formula}</div>
+          </div>
+        </header>
+
+        <section className="grid gap-4 lg:grid-cols-[1fr_360px]">
+          <div className="rounded-[24px] border border-[#d2d2d7] bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">化合物選択</h2>
+                <p className="mt-1 text-sm text-[#6e6e73]">
+                  最初に母材を選択します。GdVO₄ではGdを添加物候補から外します。
+                </p>
+              </div>
+              <div className="grid rounded-full border border-[#d2d2d7] bg-[#f5f5f7] p-1 sm:grid-cols-2">
+                {Object.values(COMPOUNDS).map((item) => (
+                  <button
+                    key={item.key}
+                    onClick={() => switchCompound(item.key)}
+                    className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+                      selectedCompound === item.key
+                        ? "bg-white text-[#0071e3] shadow-sm"
+                        : "text-[#6e6e73] hover:text-[#1d1d1f]"
+                    }`}
+                  >
+                    {item.formula}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          {selectedDopants.length > 0 && (
+          <div className="rounded-[24px] border border-[#d2d2d7] bg-white p-4 shadow-sm sm:p-5">
+            <label className="text-sm font-semibold text-[#1d1d1f]">
+              目標モル数
+            </label>
+            <div className="mt-3 flex items-center rounded-2xl border border-[#d2d2d7] bg-[#fbfbfd] px-4 py-3 focus-within:border-[#0071e3]">
+              <input
+                type="number"
+                value={targetMol}
+                onChange={(e) => {
+                  setTargetMol(e.target.value);
+                  setResults(null);
+                  setErrorMessage("");
+                }}
+                className="w-full bg-transparent text-2xl font-semibold outline-none"
+                step="0.001"
+                min="0"
+                placeholder="0.004"
+              />
+              <span className="text-sm font-medium text-[#6e6e73]">mol</span>
+            </div>
+            {errorMessage && (
+              <p className="mt-2 text-sm font-medium text-[#b42318]">
+                {errorMessage}
+              </p>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-[24px] border border-[#d2d2d7] bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <label className="block text-md font-medium text-gray-700 mb-3">
-                濃度設定 (%)
-              </label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {[1, 2, 3, 4].map((setNumber) => (
+              <h2 className="text-lg font-semibold">添加物選択</h2>
+              <p className="mt-1 text-sm text-[#6e6e73]">
+                選択した添加物だけが濃度入力に表示されます。
+              </p>
+            </div>
+            <span className="w-fit rounded-full bg-[#f5f5f7] px-3 py-1 text-xs font-semibold text-[#6e6e73]">
+              {compound.tone}
+            </span>
+          </div>
+          <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-7 xl:grid-cols-[repeat(14,minmax(0,1fr))]">
+            {availableDopants.map((dopant) => (
+              <button
+                key={dopant}
+                className={`min-h-11 rounded-2xl border px-3 text-sm font-semibold transition ${
+                  selectedDopants.includes(dopant)
+                    ? "border-[#0071e3] bg-[#0071e3] text-white shadow-sm"
+                    : "border-[#d2d2d7] bg-[#fbfbfd] text-[#1d1d1f] hover:border-[#86868b]"
+                }`}
+                onClick={() => handleDopantSelection(dopant)}
+              >
+                {dopant}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="grid gap-4 lg:grid-cols-[1fr_320px]">
+          <div className="rounded-[24px] border border-[#d2d2d7] bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">濃度設定</h2>
+                <p className="mt-1 text-sm text-[#6e6e73]">
+                  セットごとに添加濃度を入力します。未選択なら純粋系として計算します。
+                </p>
+              </div>
+              <span className="text-sm font-medium text-[#6e6e73]">
+                母材酸化物: {compound.hostOxide}
+              </span>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+              {SET_NUMBERS.map((setNumber) => {
+                const hostBalance = 100 - totalDopantForSet(setNumber);
+                return (
                   <div
                     key={setNumber}
-                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+                    className={`rounded-[22px] border p-4 transition ${
                       setNumber === selectedSet
-                        ? "border-blue-500 bg-blue-50 shadow-inner"
-                        : "border-gray-200 bg-white hover:border-gray-300"
+                        ? "border-[#0071e3] bg-[#f5faff]"
+                        : "border-[#d2d2d7] bg-[#fbfbfd]"
                     }`}
                     onClick={() => setSelectedSet(setNumber)}
                   >
-                    <div className="text-lg font-bold mb-3 text-gray-800">
-                      セット {setNumber}
-                      <span className="text-sm font-normal text-gray-600">
-                        {getSetDescription(setNumber)}
-                      </span>
-                    </div>
-                    {selectedDopants.map((dopant) => (
-                      <div
-                        key={dopant}
-                        className="flex items-center space-x-2 mb-2"
-                      >
-                        <label className="text-sm font-medium w-12">
-                          {dopant}:
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="number"
-                            value={concentrationSets[setNumber][dopant] ?? ""}
-                            onChange={(e) =>
-                              handleConcentrationChange(
-                                setNumber,
-                                dopant,
-                                e.target.value
-                              )
-                            }
-                            onFocus={() => setSelectedSet(setNumber)}
-                            onBlur={(e) =>
-                              handleConcentrationBlur(e, setNumber, dopant)
-                            }
-                            onWheel={(e) => {
-                              e.preventDefault();
-                              const target = e.target;
-                              target.focus();
-                              const currentValue =
-                                parseFloat(
-                                  concentrationSets[setNumber][dopant]
-                                ) || 0;
-                              const delta = e.deltaY < 0 ? 0.001 : -0.001;
-                              const rawValue = currentValue + delta;
-                              const newValue = Math.min(
-                                100,
-                                Math.max(0, parseFloat(rawValue.toFixed(3)))
-                              );
-                              handleConcentrationChange(
-                                setNumber,
-                                dopant,
-                                String(newValue)
-                              );
-                            }}
-                            className="w-28 px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            step="0.001"
-                            min="0"
-                            max="100"
-                            placeholder="0.000"
-                          />
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-base font-semibold">
+                          セット {setNumber}
                         </div>
-                        <span className="text-sm text-gray-600">%</span>
+                        <div className="mt-1 min-h-5 text-xs font-medium text-[#6e6e73]">
+                          {getSetDescription(setNumber)}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+                      <div className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#0071e3]">
+                        {compound.hostElement} {hostBalance.toFixed(3)}%
+                      </div>
+                    </div>
 
-          <div>
-            <label className="block text-md font-medium text-gray-700 mb-2">
-              目標モル数 (mol)
-            </label>
-            <input
-              type="number"
-              value={targetMol}
-              onChange={(e) => setTargetMol(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              step="0.001"
-              placeholder="例: 0.004"
-            />
+                    <div className="mt-4 space-y-2">
+                      {selectedDopants.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-[#d2d2d7] bg-white px-3 py-4 text-sm text-[#6e6e73]">
+                          添加物なしで計算できます。
+                        </div>
+                      ) : (
+                        selectedDopants.map((dopant) => (
+                          <label
+                            key={dopant}
+                            className="grid grid-cols-[44px_1fr_24px] items-center gap-2 text-sm"
+                          >
+                            <span className="font-semibold">{dopant}</span>
+                            <input
+                              type="number"
+                              value={concentrationSets[setNumber][dopant] ?? ""}
+                              onChange={(e) =>
+                                handleConcentrationChange(
+                                  setNumber,
+                                  dopant,
+                                  e.target.value
+                                )
+                              }
+                              onFocus={() => setSelectedSet(setNumber)}
+                              onBlur={(e) =>
+                                handleConcentrationBlur(e, setNumber, dopant)
+                              }
+                              onWheel={(e) => {
+                                e.preventDefault();
+                                const target = e.target;
+                                target.focus();
+                                const currentValue =
+                                  parseFloat(
+                                    concentrationSets[setNumber][dopant]
+                                  ) || 0;
+                                const delta = e.deltaY < 0 ? 0.001 : -0.001;
+                                const rawValue = currentValue + delta;
+                                const newValue = Math.min(
+                                  100,
+                                  Math.max(0, parseFloat(rawValue.toFixed(3)))
+                                );
+                                handleConcentrationChange(
+                                  setNumber,
+                                  dopant,
+                                  String(newValue)
+                                );
+                              }}
+                              className="h-10 rounded-xl border border-[#d2d2d7] bg-white px-3 text-right font-medium outline-none focus:border-[#0071e3]"
+                              step="0.001"
+                              min="0"
+                              max="100"
+                              placeholder="0.000"
+                            />
+                            <span className="text-[#6e6e73]">%</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <button
-            onClick={() => setShowMaterials(!showMaterials)}
-            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-          >
-            {showMaterials ? "分子量を隠す" : "分子量を表示"}
-          </button>
-
-          {showMaterials && (
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h2 className="text-lg font-semibold text-gray-800 mb-3">
-                使用材料の分子量
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2">
-                {Object.entries(materials).map(([name, mass]) => (
-                  <div key={name} className="text-sm text-gray-700">
-                    <span className="font-mono font-medium">{name}:</span>{" "}
-                    {mass} g/mol
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-4">
-            <button
-              onClick={calculateMasses}
-              className={`flex-1 py-3 px-4 rounded-lg text-lg font-bold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-opacity-50 ${
-                isCalculating || selectedDopants.length === 0
-                  ? "bg-gray-400 text-gray-200 cursor-not-allowed"
-                  : "bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-lg hover:shadow-xl focus:ring-blue-500"
-              }`}
-              disabled={selectedDopants.length === 0 || isCalculating}
-            >
-              {isCalculating ? "計算中..." : "計算する"}
-            </button>
-
-            <button
-              onClick={resetAllData}
-              className="py-3 px-6 rounded-lg text-lg font-bold bg-red-600 text-white hover:bg-red-700 active:bg-red-800 shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50"
-            >
-              リセット
-            </button>
-          </div>
-
-          {results && (
-            <div className="mt-10">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4 border-b pb-2">
-                計算結果
-              </h2>
-
-              <div className="mb-4">
+          <aside className="flex flex-col gap-4">
+            <div className="rounded-[24px] border border-[#d2d2d7] bg-white p-4 shadow-sm sm:p-5">
+              <h2 className="text-lg font-semibold">実行</h2>
+              <p className="mt-1 text-sm leading-6 text-[#6e6e73]">
+                {compound.formula} の4セットをまとめて再計算します。
+              </p>
+              <div className="mt-5 grid gap-2">
                 <button
-                  onClick={() => exportToCSV(null)}
-                  className="px-4 py-2 bg-green-600 text-white font-semibold rounded-md text-sm hover:bg-green-700 active:bg-green-800 transition-colors"
+                  onClick={calculateMasses}
+                  className="min-h-12 rounded-2xl bg-[#0071e3] px-4 text-base font-semibold text-white shadow-sm transition hover:bg-[#0077ed] disabled:cursor-not-allowed disabled:bg-[#86868b]"
+                  disabled={isCalculating}
                 >
-                  全セットをCSVエクスポート
+                  {isCalculating ? "計算中..." : "計算する"}
+                </button>
+                <button
+                  onClick={resetAllData}
+                  className="min-h-11 rounded-2xl border border-[#d2d2d7] bg-white px-4 text-sm font-semibold text-[#1d1d1f] transition hover:bg-[#f5f5f7]"
+                >
+                  リセット
                 </button>
               </div>
+            </div>
 
-              <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                  必要な材料量 (g)
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {[1, 2, 3, 4].map((setNumber) => (
+            <div className="rounded-[24px] border border-[#d2d2d7] bg-white p-4 shadow-sm sm:p-5">
+              <button
+                onClick={() => setShowMaterials(!showMaterials)}
+                className="flex w-full items-center justify-between text-left"
+              >
+                <span>
+                  <span className="block text-lg font-semibold">分子量</span>
+                  <span className="mt-1 block text-sm text-[#6e6e73]">
+                    使用候補のみ表示
+                  </span>
+                </span>
+                <span className="rounded-full bg-[#f5f5f7] px-3 py-1 text-sm font-semibold text-[#0071e3]">
+                  {showMaterials ? "隠す" : "表示"}
+                </span>
+              </button>
+              {showMaterials && (
+                <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+                  {activeMaterials.map(({ name, mass }) => (
+                    <div
+                      key={name}
+                      className="rounded-2xl border border-[#d2d2d7] bg-[#fbfbfd] px-3 py-2"
+                    >
+                      <div className="font-mono font-semibold">{name}</div>
+                      <div className="mt-1 text-xs text-[#6e6e73]">
+                        {mass} g/mol
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </aside>
+        </section>
+
+        {results && (
+          <section className="rounded-[28px] border border-[#d2d2d7] bg-white p-4 shadow-sm sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold tracking-tight">
+                  計算結果
+                </h2>
+                <p className="mt-1 text-sm text-[#6e6e73]">
+                  {compound.formula} / 目標 {targetMol} mol
+                </p>
+              </div>
+              <button
+                onClick={() => exportToCSV(null)}
+                className="min-h-11 rounded-2xl border border-[#0071e3] bg-white px-4 text-sm font-semibold text-[#0071e3] transition hover:bg-[#f5faff]"
+              >
+                全セットをCSV出力
+              </button>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+              {SET_NUMBERS.map((setNumber) => (
+                <div
+                  key={setNumber}
+                  className="rounded-[24px] border border-[#d2d2d7] bg-[#fbfbfd] p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-lg font-semibold">
+                        セット {setNumber}
+                      </div>
+                      <div className="mt-1 text-xs font-medium text-[#6e6e73]">
+                        {getSetDescription(setNumber)}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => exportToCSV(setNumber)}
+                      className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-[#0071e3] shadow-sm"
+                    >
+                      CSV
+                    </button>
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    {Object.entries(results[setNumber].masses).map(
+                      ([material, calculatedValue]) => (
+                        <div
+                          key={material}
+                          className="rounded-2xl border border-[#d2d2d7] bg-white p-3"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="font-mono text-sm font-semibold">
+                              {material}
+                            </span>
+                            <span className="text-right text-sm font-semibold">
+                              {formatDisplayValue(calculatedValue)} g
+                            </span>
+                          </div>
+                          <div className="mt-3 grid grid-cols-[1fr_auto_auto] items-center gap-2">
+                            <input
+                              type="number"
+                              value={measuredValues[setNumber]?.[material] || ""}
+                              onChange={(e) =>
+                                handleMeasuredValueChange(
+                                  setNumber,
+                                  material,
+                                  e.target.value
+                                )
+                              }
+                              placeholder="測定値"
+                              className="h-10 min-w-0 rounded-xl border border-[#d2d2d7] px-3 text-sm outline-none focus:border-[#0071e3]"
+                              step="0.0001"
+                            />
+                            <button
+                              onClick={() =>
+                                handleMeasuredValueChange(
+                                  setNumber,
+                                  material,
+                                  calculatedValue.toFixed(4)
+                                )
+                              }
+                              className="h-10 rounded-xl bg-[#f5f5f7] px-3 text-xs font-semibold text-[#1d1d1f]"
+                            >
+                              ピッタリ
+                            </button>
+                            <button
+                              aria-label={`${material} weighed`}
+                              onClick={() => toggleWeighted(setNumber, material)}
+                              className={`flex h-10 w-10 items-center justify-center rounded-xl border text-sm font-bold transition ${
+                                weightedMaterials[setNumber]?.[material]
+                                  ? "border-[#34c759] bg-[#34c759] text-white"
+                                  : "border-[#d2d2d7] bg-white text-transparent"
+                              }`}
+                            >
+                              ✓
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_1fr]">
+              <div className="rounded-[24px] border border-[#d2d2d7] bg-[#fbfbfd] p-4">
+                <h3 className="text-lg font-semibold">全体の割合</h3>
+                <div className="mt-3 space-y-2">
+                  {SET_NUMBERS.map((setNumber) => (
                     <div
                       key={setNumber}
-                      className="bg-white p-4 rounded-lg shadow-md"
+                      className="overflow-hidden rounded-2xl border border-[#d2d2d7] bg-white"
                     >
-                      <div className="font-bold text-gray-800 text-lg mb-3">
-                        セット {setNumber}
-                        <span className="text-sm font-normal text-gray-600">
-                          {getSetDescription(setNumber)}
+                      <button
+                        onClick={() => togglePercentages(setNumber)}
+                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold"
+                      >
+                        <span>
+                          セット {setNumber}: {getSetDescription(setNumber)}
                         </span>
-                      </div>
-                      <div className="space-y-3">
-                        {Object.entries(results[setNumber].masses).map(
-                          ([material, calculatedValue]) => (
-                            <div key={material} className="space-y-1.5">
-                              <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-700 font-mono">
-                                  {material}:
-                                </span>
-                                <span className="font-medium text-right">
-                                  {formatDisplayValue(calculatedValue)} g
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="number"
-                                  value={
-                                    measuredValues[setNumber]?.[material] || ""
-                                  }
-                                  onChange={(e) =>
-                                    handleMeasuredValueChange(
-                                      setNumber,
-                                      material,
-                                      e.target.value
-                                    )
-                                  }
-                                  placeholder="測定値"
-                                  className="flex-grow w-full px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500"
-                                  step="0.0001"
-                                />
-                                <button
-                                  onClick={() =>
-                                    handleMeasuredValueChange(
-                                      setNumber,
-                                      material,
-                                      calculatedValue.toFixed(4)
-                                    )
-                                  }
-                                  className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md border border-gray-300 whitespace-nowrap transition-colors"
-                                >
-                                  ピッタリ
-                                </button>
-                                <span
-                                  className={`w-5 h-5 border rounded cursor-pointer flex items-center justify-center transition-colors flex-shrink-0 ${
-                                    weightedMaterials[setNumber]?.[material]
-                                      ? "bg-green-500 border-green-600 text-white"
-                                      : "border-gray-300 bg-white hover:border-gray-400"
-                                  }`}
-                                  onClick={() =>
-                                    toggleWeighted(setNumber, material)
-                                  }
-                                >
-                                  {weightedMaterials[setNumber]?.[material] && (
-                                    <span className="text-xs font-bold">✓</span>
-                                  )}
-                                </span>
-                              </div>
+                        <span className="text-[#0071e3]">
+                          {showPercentages[setNumber] ? "閉じる" : "表示"}
+                        </span>
+                      </button>
+                      {showPercentages[setNumber] && (
+                        <div className="grid grid-cols-2 gap-2 border-t border-[#d2d2d7] bg-[#fbfbfd] p-3 sm:grid-cols-4">
+                          {Object.entries(
+                            results[setNumber].concentrations
+                          ).map(([element, concentration]) => (
+                            <div key={element} className="text-sm">
+                              <span className="font-semibold">{element}</span>{" "}
+                              {Number(concentration).toFixed(3)}%
                             </div>
-                          )
-                        )}
-                      </div>
-                      <div className="mt-4 flex space-x-2">
-                        <button
-                          onClick={() => exportToCSV(setNumber)}
-                          className="px-3 py-1 bg-green-100 text-green-800 font-semibold rounded-md text-xs hover:bg-green-200 transition-colors"
-                        >
-                          このセットをCSV出力
-                        </button>
-                      </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="space-y-2 mb-6">
-                {[1, 2, 3, 4].map((setNumber) => (
-                  <div
-                    key={setNumber}
-                    className="bg-white rounded-lg overflow-hidden border border-gray-200"
-                  >
-                    <button
-                      onClick={() => togglePercentages(setNumber)}
-                      className="w-full px-4 py-3 text-left font-semibold text-gray-800 hover:bg-gray-50 flex justify-between items-center"
-                    >
-                      <span>
-                        セット {setNumber}
-                        {getSetDescription(setNumber)} の全体の割合 (%)
-                      </span>
-                      <span
-                        className={`transform transition-transform duration-200 ${
-                          showPercentages[setNumber] ? "rotate-180" : ""
-                        }`}
-                      >
-                        ▼
-                      </span>
-                    </button>
-                    {showPercentages[setNumber] && (
-                      <div className="p-4 border-t border-gray-200 bg-gray-50">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {Object.entries(
-                            results[setNumber].concentrations
-                          ).map(([element, concentration]) => (
-                            <div key={element} className="text-sm">
-                              <span className="font-medium">{element}:</span>{" "}
-                              {Number(concentration).toFixed(3)}%
+              <div className="rounded-[24px] border border-[#d2d2d7] bg-[#fbfbfd] p-4">
+                <h3 className="text-lg font-semibold">必要な試薬の量</h3>
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="rounded-2xl bg-white p-3 text-sm">
+                    <span className="font-semibold">硝酸</span>
+                    <div className="mt-1 text-lg font-semibold">
+                      {reagentAmounts.nitricAcid} ml
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-white p-3 text-sm">
+                    <span className="font-semibold">純水</span>
+                    <div className="mt-1 text-lg font-semibold">
+                      {reagentAmounts.water} ml
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-white p-3 text-sm">
+                    <span className="font-semibold">クエン酸水和物</span>
+                    <div className="mt-1 text-lg font-semibold">
+                      {reagentAmounts.citricAcid} g
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-white p-3 text-sm">
+                    <span className="font-semibold">
+                      プロピレングリコール
+                    </span>
+                    <div className="mt-1 text-lg font-semibold">
+                      {reagentAmounts.propyleneGlycol} ml
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() =>
+                    setShowReagentCalculation(!showReagentCalculation)
+                  }
+                  className="mt-4 rounded-full bg-white px-3 py-2 text-sm font-semibold text-[#0071e3]"
+                >
+                  {showReagentCalculation ? "計算過程を隠す" : "計算過程を表示"}
+                </button>
+
+                {showReagentCalculation && (
+                  <div className="mt-4 max-h-[480px] overflow-auto rounded-2xl border border-[#d2d2d7] bg-white p-4 text-sm leading-6 text-[#424245]">
+                    <h4 className="text-base font-semibold text-[#1d1d1f]">
+                      計算過程（{compound.formula} / {targetMol} mol）
+                    </h4>
+                    <div className="mt-4 space-y-4">
+                      <div>
+                        <div className="font-semibold text-[#1d1d1f]">
+                          材料の計算
+                        </div>
+                        <div className="mt-2 space-y-4">
+                          {SET_NUMBERS.map((setNumber) => (
+                            <div key={setNumber}>
+                              <div className="font-semibold">
+                                セット {setNumber}
+                              </div>
+                              <div className="mt-1">
+                                {renderMaterialCalculation(setNumber)}
+                              </div>
                             </div>
                           ))}
                         </div>
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                  必要な試薬の量
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {(() => {
-                    const reagentAmounts = calculateReagentAmounts(
-                      parseFloat(targetMol)
-                    );
-                    return (
-                      <>
-                        <div className="bg-white p-3 rounded-md shadow-sm">
-                          <span className="font-medium">硝酸:</span>{" "}
-                          {reagentAmounts.nitricAcid} ml
-                        </div>
-                        <div className="bg-white p-3 rounded-md shadow-sm">
-                          <span className="font-medium">純水:</span>{" "}
-                          {reagentAmounts.water} ml
-                        </div>
-                        <div className="bg-white p-3 rounded-md shadow-sm">
-                          <span className="font-medium">クエン酸水和物:</span>{" "}
-                          {reagentAmounts.citricAcid} g
-                        </div>
-                        <div className="bg-white p-3 rounded-md shadow-sm">
-                          <span className="font-medium">
-                            プロピレングリコール:
-                          </span>{" "}
-                          {reagentAmounts.propyleneGlycol} ml
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-                <div className="mt-4">
-                  <button
-                    onClick={() =>
-                      setShowReagentCalculation(!showReagentCalculation)
-                    }
-                    className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                  >
-                    {showReagentCalculation
-                      ? "計算過程を隠す"
-                      : "計算過程を表示"}
-                  </button>
-                </div>
-
-                {showReagentCalculation && (
-                  <div className="mt-4 bg-white p-4 rounded-lg border border-gray-200">
-                    <h4 className="text-lg font-semibold text-gray-800 mb-3">
-                      計算過程（目標モル数: {targetMol} mol）
-                    </h4>
-                    <div className="space-y-4 text-sm text-gray-700">
-                      <div>
-                        <div className="font-semibold text-gray-800 mb-2">
-                          材料の計算:
-                        </div>
-                        <div className="pl-4 space-y-2">
-                          {[1, 2, 3, 4].map((setNumber) => {
-                            const currentSet = concentrationSets[setNumber];
-                            const totalDopantConcentration = Object.values(
-                              currentSet
-                            ).reduce(
-                              (sum, concentration) =>
-                                sum + parseFloat(concentration || 0),
-                              0
-                            );
-                            const targetMetalMol = parseFloat(targetMol);
-
-                            return (
-                              <div key={setNumber} className="mb-4">
-                                <div className="font-medium text-gray-800 mb-1">
-                                  セット {setNumber}:
-                                </div>
-                                <div className="pl-2 space-y-1">
-                                  {Object.entries(currentSet).map(
-                                    ([dopant, concentration]) => {
-                                      if (parseFloat(concentration || 0) > 0) {
-                                        const oxide = dopants[dopant];
-                                        const molarMass = materials[oxide];
-                                        const concentrationDecimal =
-                                          parseFloat(concentration) / 100;
-                                        return (
-                                          <div key={dopant}>
-                                            {oxide}({concentration}%):{" "}
-                                            {molarMass}[g/mol] ×{" "}
-                                            {targetMetalMol}[mol] ÷ 2 ×{" "}
-                                            {concentrationDecimal < 0.01
-                                              ? concentrationDecimal.toExponential(
-                                                  2
-                                                )
-                                              : concentrationDecimal.toFixed(
-                                                  3
-                                                )}{" "}
-                                            ={" "}
-                                            {formatDisplayValue(
-                                              ((molarMass * targetMetalMol) /
-                                                2) *
-                                                concentrationDecimal
-                                            )}
-                                            [g]
-                                          </div>
-                                        );
-                                      }
-                                      return null;
-                                    }
-                                  )}
-
-                                  <div>
-                                    Y₂O₃(
-                                    {(100 - totalDopantConcentration).toFixed(
-                                      1
-                                    )}
-                                    %): {materials["Y₂O₃"]}[g/mol] ×{" "}
-                                    {targetMetalMol}[mol] ÷ 2 ×{" "}
-                                    {(100 - totalDopantConcentration) / 100 <
-                                    0.01
-                                      ? (
-                                          (100 - totalDopantConcentration) /
-                                          100
-                                        ).toExponential(2)
-                                      : (
-                                          (100 - totalDopantConcentration) /
-                                          100
-                                        ).toFixed(3)}{" "}
-                                    ={" "}
-                                    {formatDisplayValue(
-                                      ((materials["Y₂O₃"] * targetMetalMol) /
-                                        2) *
-                                        ((100 - totalDopantConcentration) / 100)
-                                    )}
-                                    [g]
-                                  </div>
-
-                                  <div>
-                                    V₂O₅: {materials["V₂O₅"]}[g/mol] ×{" "}
-                                    {targetMetalMol}[mol] ÷ 2 ={" "}
-                                    {formatDisplayValue(
-                                      (materials["V₂O₅"] * targetMetalMol) / 2
-                                    )}
-                                    [g]
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
 
                       <div>
-                        <div className="font-semibold text-gray-800 mb-2">
-                          クエン酸水和物の計算:
+                        <div className="font-semibold text-[#1d1d1f]">
+                          クエン酸水和物の計算
                         </div>
-                        <div className="pl-4 space-y-1">
-                          <div>
-                            モル質量 × 金属イオンの物質量(目標モル数×2) × 2
-                          </div>
-                          <div>
-                            210.14 [g/mol] ×{" "}
-                            {(parseFloat(targetMol) * 2).toFixed(3)} [mol] × 2 ={" "}
-                            {(210.14 * parseFloat(targetMol) * 2 * 2).toFixed(
-                              4
-                            )}{" "}
-                            [g]
-                          </div>
+                        <div>
+                          210.14 [g/mol] ×{" "}
+                          {(parseFloat(targetMol) * 2).toFixed(3)} [mol] × 2 ={" "}
+                          {(210.14 * parseFloat(targetMol) * 2 * 2).toFixed(4)}{" "}
+                          [g]
                         </div>
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-800 mb-2">
-                          プロピレングリコールの計算:
+                        <div className="font-semibold text-[#1d1d1f]">
+                          プロピレングリコールの計算
                         </div>
-                        <div className="pl-4 space-y-1">
-                          <div>
-                            モル質量 × 金属イオンの物質量(目標モル数×2) × 2 ÷
-                            比重
-                          </div>
-                          <div>
-                            76.00 [g/mol] ×{" "}
-                            {(parseFloat(targetMol) * 2).toFixed(3)} [mol] × 2 ÷
-                            1.04 [g/ml] ={" "}
-                            {(
-                              (76.0 * parseFloat(targetMol) * 2 * 2) /
-                              1.04
-                            ).toFixed(2)}{" "}
-                            [ml]
-                          </div>
+                        <div>
+                          76.00 [g/mol] ×{" "}
+                          {(parseFloat(targetMol) * 2).toFixed(3)} [mol] × 2 ÷
+                          1.04 [g/ml] ={" "}
+                          {(
+                            (76.0 * parseFloat(targetMol) * 2 * 2) /
+                            1.04
+                          ).toFixed(2)}{" "}
+                          [ml]
                         </div>
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-800 mb-2">
-                          硝酸・純水の計算:
+                        <div className="font-semibold text-[#1d1d1f]">
+                          硝酸・純水の計算
                         </div>
-                        <div className="pl-4 space-y-1">
-                          <div>
-                            目標モル数に応じて比例計算（基準値: 0.004 mol）
-                          </div>
-                          <div>
-                            硝酸: 5.00 ml × ({parseFloat(targetMol)} ÷ 0.004) ={" "}
-                            {((5.0 * parseFloat(targetMol)) / 0.004).toFixed(2)}{" "}
-                            ml
-                          </div>
-                          <div>
-                            純水: 40.00 ml × ({parseFloat(targetMol)} ÷ 0.004) ={" "}
-                            {((40.0 * parseFloat(targetMol)) / 0.004).toFixed(
-                              2
-                            )}{" "}
-                            ml
-                          </div>
+                        <div>
+                          硝酸: 5.00 ml × ({parseFloat(targetMol)} ÷ 0.004) ={" "}
+                          {((5.0 * parseFloat(targetMol)) / 0.004).toFixed(2)}{" "}
+                          ml
+                        </div>
+                        <div>
+                          純水: 40.00 ml × ({parseFloat(targetMol)} ÷ 0.004) ={" "}
+                          {((40.0 * parseFloat(targetMol)) / 0.004).toFixed(2)}{" "}
+                          ml
                         </div>
                       </div>
                     </div>
@@ -1004,10 +1146,10 @@ function MainComponent() {
                 )}
               </div>
             </div>
-          )}
-        </div>
+          </section>
+        )}
       </div>
-    </div>
+    </main>
   );
 }
 
