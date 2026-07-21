@@ -122,6 +122,7 @@ function ElementButton({ element, selected, onClick }) {
       aria-pressed={selected}
       className={`element-button ${selected ? "is-selected" : ""}`}
       onClick={onClick}
+      onPointerUp={(event) => event.currentTarget.blur()}
     >
       {element}
     </button>
@@ -316,6 +317,10 @@ function MainComponent() {
     updateMeasuredValue(setNumber, material, Math.max(0, current + concentrationStep * direction).toFixed(decimalPlaces));
   };
 
+  const matchCalculatedValue = (setNumber, material, calculated) => {
+    updateMeasuredValue(setNumber, material, formatValue(calculated));
+  };
+
   const toggleWeighted = (setNumber, material) => {
     setWeightedMaterials((current) => ({
       ...current,
@@ -384,7 +389,7 @@ function MainComponent() {
           <div>
             <p className="eyebrow">CITRATE COMPLEX METHOD</p>
             <h1>YVO₄ / GdVO₄ 秤量計算ツール</h1>
-            <p>母材と置換元素を選び、添加濃度から秤量値を計算します。</p>
+            <p>母材を選び、添加濃度と秤量値をセットごとにまとめて管理できます。</p>
           </div>
           <div className="current-compound-card">
             <span>現在の母材</span>
@@ -583,7 +588,7 @@ function MainComponent() {
                       <div className="result-row" role="row" key={material}>
                         <strong className="material-name">{material}</strong>
                         <span className="calculated-value">{formatValue(calculated)} g</span>
-                        <label className="measured-field">
+                        <div className="measured-field">
                           <span className="mobile-only-label">実測値</span>
                           <input
                             aria-label={`セット ${setNumber} ${material} 実測値`}
@@ -600,7 +605,14 @@ function MainComponent() {
                               }
                             }}
                           />
-                        </label>
+                          <button
+                            type="button"
+                            className="match-button"
+                            onClick={() => matchCalculatedValue(setNumber, material, calculated)}
+                          >
+                            ぴったり
+                          </button>
+                        </div>
                         <label className="weighted-check">
                           <input
                             aria-label={`セット ${setNumber} ${material} 秤量済み`}
