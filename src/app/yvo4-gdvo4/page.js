@@ -35,8 +35,8 @@ const RARE_EARTH_DOPANTS = {
   La: "La₂O₃",
 };
 
-const OTHER_ADDITIVES = { Bi: "Bi₂O₃" };
-const ALL_ADDITIVES = { ...RARE_EARTH_DOPANTS, ...OTHER_ADDITIVES };
+const OTHER_SUBSTITUENTS = { Bi: "Bi₂O₃" };
+const ALL_ADDITIVES = { ...RARE_EARTH_DOPANTS, ...OTHER_SUBSTITUENTS };
 
 const MATERIALS = {
   "V₂O₅": 181.8804,
@@ -150,7 +150,7 @@ function MainComponent() {
     [compound.hostElement]
   );
   const selectedRareEarths = selectedDopants.filter((element) => element in RARE_EARTH_DOPANTS);
-  const selectedOtherAdditives = selectedDopants.filter((element) => element in OTHER_ADDITIVES);
+  const selectedOtherSubstituents = selectedDopants.filter((element) => element in OTHER_SUBSTITUENTS);
   const concentrationStep = 10 ** -decimalPlaces;
 
   React.useEffect(() => {
@@ -256,7 +256,7 @@ function MainComponent() {
     updateConcentration(setNumber, element, next.toFixed(decimalPlaces));
   };
 
-  const rareEarthTotal = (setNumber) => selectedRareEarths.reduce(
+  const substitutionTotal = (setNumber) => selectedDopants.reduce(
     (sum, element) => sum + Number(concentrationSets[setNumber]?.[element] || 0), 0
   );
 
@@ -270,13 +270,13 @@ function MainComponent() {
       masses[RARE_EARTH_DOPANTS[element]] = (targetMetalMol * concentration / 100 / 2) * MATERIALS[RARE_EARTH_DOPANTS[element]];
     });
 
-    selectedOtherAdditives.forEach((element) => {
+    selectedOtherSubstituents.forEach((element) => {
       const concentration = Number(concentrationSets[setNumber]?.[element] || 0);
       concentrations[element] = concentration;
-      masses[OTHER_ADDITIVES[element]] = (targetMetalMol * concentration / 100 / 2) * MATERIALS[OTHER_ADDITIVES[element]];
+      masses[OTHER_SUBSTITUENTS[element]] = (targetMetalMol * concentration / 100 / 2) * MATERIALS[OTHER_SUBSTITUENTS[element]];
     });
 
-    const hostConcentration = 100 - rareEarthTotal(setNumber);
+    const hostConcentration = 100 - substitutionTotal(setNumber);
     concentrations[compound.hostElement] = hostConcentration;
     concentrations.V = 100;
     masses[compound.hostOxide] = (targetMetalMol * hostConcentration / 100 / 2) * MATERIALS[compound.hostOxide];
@@ -290,9 +290,9 @@ function MainComponent() {
       setErrorMessage("目標モル数は0より大きい数値を入力してください。");
       return;
     }
-    const invalidSet = setNumbers.find((setNumber) => rareEarthTotal(setNumber) > 100);
+    const invalidSet = setNumbers.find((setNumber) => substitutionTotal(setNumber) > 100);
     if (invalidSet) {
-      setErrorMessage(`セット ${invalidSet} の希土類置換濃度の合計が100%を超えています。`);
+      setErrorMessage(`セット ${invalidSet} の置換濃度の合計が100%を超えています。`);
       return;
     }
 
@@ -382,10 +382,14 @@ function MainComponent() {
       <div className="app-shell">
         <header className="app-header">
           <div>
-            <h1>YVO₄ / GdVO₄ 秤量計算</h1>
+            <p className="eyebrow">CITRATE COMPLEX METHOD</p>
+            <h1>YVO₄ / GdVO₄ 秤量計算ツール</h1>
             <p>母材と置換元素を選び、添加濃度から秤量値を計算します。</p>
           </div>
-          <div className="author">Kou Hashizume</div>
+          <div className="current-compound-card">
+            <span>現在の母材</span>
+            <strong>{compound.formula}</strong>
+          </div>
         </header>
 
         <div className="workspace-grid">
@@ -478,13 +482,13 @@ function MainComponent() {
               </div>
 
               <div className="element-group other-elements">
-                <h3>その他の添加元素</h3>
+                <h3>その他の置換元素</h3>
                 <ElementButton
                   element="Bi"
                   selected={selectedDopants.includes("Bi")}
                   onClick={() => toggleDopant("Bi")}
                 />
-                <p className="info-note"><span aria-hidden="true">i</span>Biは希土類元素ではなく、母材サイト置換としては扱いません。</p>
+                <p className="info-note"><span aria-hidden="true">i</span>Biは希土類元素ではありませんが、母材サイトを置換します。</p>
               </div>
 
               {showMaterials && (
@@ -539,7 +543,7 @@ function MainComponent() {
                         </label>
                       ))}
                     </div>
-                    <span className="host-balance">{compound.hostElement} {(100 - rareEarthTotal(setNumber)).toFixed(decimalPlaces)}%</span>
+                    <span className="host-balance">{compound.hostElement} {(100 - substitutionTotal(setNumber)).toFixed(decimalPlaces)}%</span>
                   </div>
                 ))}
               </div>
@@ -632,13 +636,18 @@ function MainComponent() {
                 {showDetails ? "計算条件を閉じる" : "計算条件を確認"}
               </button>
               {showDetails && (
-                <p className="calculation-note">希土類元素は母材サイトを置換するものとして母材量から差し引きます。Biはその他の添加元素として母材量から差し引かずに計算します。</p>
+                <p className="calculation-note">希土類元素とBiはいずれも母材サイトを置換するものとして、設定濃度を母材量から差し引いて計算します。</p>
               )}
             </div>
           </section>
         )}
 
-        <footer>Created by Kou Hashizume</footer>
+        <footer>
+          <a href="https://github.com/Kou-256/weighing-calculator" target="_blank" rel="noreferrer">
+            GitHub <span aria-hidden="true">↗</span>
+          </a>
+          <span>Created by Kou Hashizume</span>
+        </footer>
       </div>
     </main>
   );
