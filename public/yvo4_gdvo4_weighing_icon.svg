@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">YVO₄ / GdVO₄ 秤量計算ツール</title>
+  <desc id="desc">YとGdを載せた電子天秤を表す、角丸背景付きのシンプルなアプリアイコン</desc>
+  <defs>
+    <linearGradient id="yGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#82C45C"/>
+      <stop offset="1" stop-color="#63A844"/>
+    </linearGradient>
+    <linearGradient id="gdGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8A61C5"/>
+      <stop offset="1" stop-color="#6842A5"/>
+    </linearGradient>
+    <linearGradient id="scaleGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4A4F56"/>
+      <stop offset="1" stop-color="#343940"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 余白を持たない角丸背景 -->
+  <rect x="0.75" y="0.75" width="510.5" height="510.5" rx="76" fill="#FCFCFD" stroke="#E8E9EC" stroke-width="1.5"/>
+
+  <!-- 元素バッジ -->
+  <circle cx="158" cy="180" r="85" fill="url(#yGradient)"/>
+  <circle cx="354" cy="180" r="85" fill="url(#gdGradient)"/>
+
+  <text x="158" y="222" text-anchor="middle" fill="#FFFFFF"
+        font-family="Arial, Helvetica, sans-serif" font-size="126" font-weight="700">Y</text>
+  <text x="354" y="212" text-anchor="middle" fill="#FFFFFF"
+        font-family="Arial, Helvetica, sans-serif" font-size="91" font-weight="700">Gd</text>
+
+  <!-- 電子天秤。小サイズでも潰れない太い形状 -->
+  <g fill="url(#scaleGradient)">
+    <rect x="69" y="278" width="150" height="24" rx="12"/>
+    <rect x="293" y="278" width="150" height="24" rx="12"/>
+  </g>
+
+  <path d="M145 294V319Q145 331 157 331H355Q367 331 367 319V294"
+        fill="none" stroke="url(#scaleGradient)" stroke-width="24"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="244" y="326" width="24" height="37" rx="7" fill="url(#scaleGradient)"/>
+  <rect x="190" y="352" width="132" height="88" rx="21" fill="url(#scaleGradient)"/>
+  <rect x="209" y="371" width="94" height="36" rx="8" fill="#FCFCFD"/>
+  <rect x="177" y="421" width="158" height="28" rx="14" fill="url(#scaleGradient)"/>
+</svg>

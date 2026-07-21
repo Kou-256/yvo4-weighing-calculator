@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 
 const COMPOUNDS = {
   yvo4: {
@@ -385,17 +386,38 @@ function MainComponent() {
   return (
     <main className="calculator-page">
       <div className="app-shell">
-        <header className="app-header">
+        <header className="page-header">
+          <a className="page-brand" href="/" aria-label="秤量計算ツールのトップへ">
+            <Image
+              className="page-brand-icon"
+              src="/yvo4_gdvo4_weighing_icon.svg"
+              width="48"
+              height="48"
+              alt=""
+              priority
+              unoptimized
+            />
+            <span className="page-brand-copy">
+              <strong>Weighing Calculator</strong>
+              <small>YVO₄ / GdVO₄</small>
+            </span>
+          </a>
+          <nav className="page-navigation" aria-label="ページナビゲーション">
+            <a href="https://github.com/Kou-256/weighing-calculator" target="_blank" rel="noreferrer">GitHub ↗</a>
+          </nav>
+        </header>
+
+        <section className="app-header" aria-labelledby="calculator-title">
           <div>
             <p className="eyebrow">CITRATE COMPLEX METHOD</p>
-            <h1>YVO₄ / GdVO₄ 秤量計算ツール</h1>
+            <h1 id="calculator-title">YVO₄ / GdVO₄ 秤量計算ツール</h1>
             <p>母材を選び、添加濃度と秤量値をセットごとにまとめて管理できます。</p>
           </div>
           <div className="current-compound-card">
             <span>現在の母材</span>
             <strong>{compound.formula}</strong>
           </div>
-        </header>
+        </section>
 
         <div className="workspace-grid">
           <aside className="settings-panel" aria-label="計算設定">

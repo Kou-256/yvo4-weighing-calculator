@@ -56,6 +56,83 @@ a:focus-visible {
   margin: 0 auto;
 }
 
+.page-header {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.page-brand {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 11px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.page-brand-icon {
+  display: block;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.page-brand-copy {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.page-brand-copy strong {
+  overflow: hidden;
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-brand-copy small {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 650;
+}
+
+.page-navigation {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.page-navigation a {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 14px;
+  color: var(--accent);
+  background: var(--surface-soft);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.page-navigation a:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .app-header,
 .settings-panel > .setting-field,
 .settings-pair,
@@ -402,7 +479,9 @@ a:focus-visible {
 
 .compact-number-field {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 36px 36px;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(120px, 1fr) 36px 36px;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -410,7 +489,8 @@ a:focus-visible {
 }
 
 .compact-number-field input {
-  min-width: 0;
+  width: 100%;
+  min-width: 120px;
   height: 38px;
   border: 0;
   padding: 0 10px;
@@ -519,7 +599,7 @@ a:focus-visible {
 .measured-field {
   display: grid;
   grid-column: 1 / -1;
-  grid-template-columns: 62px minmax(0, 1fr) auto;
+  grid-template-columns: 62px minmax(120px, 1fr) auto;
   align-items: center;
   gap: 8px;
 }
@@ -528,6 +608,7 @@ a:focus-visible {
 
 .measured-field input {
   width: 100%;
+  min-width: 120px;
   height: 38px;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -583,9 +664,10 @@ a:focus-visible {
 
 .fine-adjustment {
   display: grid;
-  grid-template-columns: 38px 1fr 38px;
+  grid-template-columns: 38px minmax(112px, 1fr) 38px;
   justify-self: end;
-  width: min(190px, 100%);
+  width: 196px;
+  max-width: 100%;
   height: 38px;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -659,6 +741,18 @@ footer a:hover { text-decoration: underline; }
 
 @media (max-width: 520px) {
   .calculator-page { padding: 10px 8px 22px; }
+  .page-header {
+    min-height: 62px;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    border-radius: 22px;
+  }
+  .page-brand { gap: 9px; }
+  .page-brand-icon { flex-basis: 42px; width: 42px; height: 42px; }
+  .page-brand-copy strong { font-size: 0.9rem; }
+  .page-brand-copy small { font-size: 0.68rem; }
+  .page-navigation a { min-height: 36px; padding: 0 11px; font-size: 0.76rem; }
   .app-header,
   .settings-panel > .setting-field,
   .settings-pair,
@@ -681,11 +775,17 @@ footer a:hover { text-decoration: underline; }
   .element-button { min-height: 40px; padding: 0 7px; font-size: 0.86rem; }
   .results-heading { display: block; }
   .csv-button { width: 100%; margin-top: 12px; }
-  .measured-field { grid-template-columns: 58px minmax(0, 1fr) auto; }
+  .compact-number-field { grid-template-columns: minmax(104px, 1fr) 34px 34px; }
+  .compact-number-field input { min-width: 104px; }
+  .measured-field { grid-template-columns: 58px minmax(104px, 1fr) auto; }
+  .measured-field input { min-width: 104px; }
+  .fine-adjustment { grid-template-columns: 36px minmax(104px, 1fr) 36px; width: 176px; }
   .match-button { min-width: 68px; padding: 0 9px; }
 }
 
 @media (max-width: 370px) {
+  .page-brand-copy small { display: none; }
+  .page-navigation a { padding: 0 9px; }
   .settings-pair { grid-template-columns: 1fr; }
   .element-grid { grid-template-columns: repeat(3, 1fr); }
   .reagent-section dl { grid-template-columns: 1fr; }
