@@ -1,6 +1,6 @@
 export const metadata = {
-  title: 'YVO4/GdVO4 秤量計算ツール',
-  description: 'YVO4 と GdVO4 合成用の秤量計算ツール',
+  title: 'YVO₄ / GdVO₄ 秤量計算 | Kou Hashizume',
+  description: '小数桁数とセット数を自由に設定できるYVO₄ / GdVO₄合成用の秤量計算ツール',
 }
 
 export default function Yvo4Gdvo4Layout({ children }) {

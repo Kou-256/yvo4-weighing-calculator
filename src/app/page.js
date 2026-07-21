@@ -26,6 +26,9 @@ export default function Home() {
               <p className="mt-4 max-w-2xl text-base leading-7 text-[#6e6e73]">
                 合成したい物質を選ぶと、対応する秤量計算画面を開けます。
               </p>
+              <p className="mt-3 text-sm font-semibold text-[#6e6e73]">
+                Created by Kou Hashizume
+              </p>
             </div>
             <div className="rounded-2xl border border-[#d2d2d7] bg-[#fbfbfd] px-4 py-3">
               <div className="text-sm font-medium text-[#6e6e73]">現在の対応数</div>
