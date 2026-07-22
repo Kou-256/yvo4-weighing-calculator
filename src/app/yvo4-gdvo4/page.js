@@ -91,6 +91,27 @@ const normalizeSets = (sets, count) => {
   );
 };
 
+const formatDisplayNumber = (value, maxDecimalPlaces) => {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return "0";
+
+  const precision = Math.max(0, maxDecimalPlaces);
+  const factor = 10 ** precision;
+  const rounded = Math.round((numericValue + Number.EPSILON) * factor) / factor;
+  if (Object.is(rounded, -0)) return "0";
+  const fixedValue = rounded.toFixed(precision);
+  return fixedValue.includes(".") ? fixedValue.replace(/0+$/, "").replace(/\.$/, "") : fixedValue;
+};
+
+function StepperChevron({ direction }) {
+  const path = direction === "up" ? "M4 10l4-4 4 4" : "M4 6l4 4 4-4";
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d={path} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function StepperField({ label, value, min, max, onChange, help }) {
   const update = (nextValue) => onChange(clampInteger(nextValue, min, max, value));
 
@@ -107,8 +128,8 @@ function StepperField({ label, value, min, max, onChange, help }) {
           onChange={(event) => update(event.target.value)}
         />
         <span className="stepper-buttons">
-          <button type="button" aria-label={`${label}を増やす`} onClick={() => update(value + 1)}>⌃</button>
-          <button type="button" aria-label={`${label}を減らす`} onClick={() => update(value - 1)}>⌄</button>
+          <button type="button" aria-label={`${label}を増やす`} onClick={() => update(value + 1)}><StepperChevron direction="up" /></button>
+          <button type="button" aria-label={`${label}を減らす`} onClick={() => update(value - 1)}><StepperChevron direction="down" /></button>
         </span>
       </span>
       <span className="setting-help">{help}</span>
@@ -305,6 +326,7 @@ function MainComponent() {
   };
 
   const formatValue = (value) => Number(value || 0).toFixed(decimalPlaces);
+  const formatPercentage = (value) => formatDisplayNumber(value, decimalPlaces);
 
   const updateMeasuredValue = (setNumber, material, value) => {
     setMeasuredValues((current) => ({
@@ -402,19 +424,16 @@ function MainComponent() {
               <small>YVO₄ / GdVO₄</small>
             </span>
           </a>
-          <nav className="page-navigation" aria-label="ページナビゲーション">
-            <a href="https://github.com/Kou-256/weighing-calculator" target="_blank" rel="noreferrer">GitHub ↗</a>
-          </nav>
         </header>
 
         <section className="app-header" aria-labelledby="calculator-title">
           <div>
             <p className="eyebrow">CITRATE COMPLEX METHOD</p>
             <h1 id="calculator-title">YVO₄ / GdVO₄ 秤量計算ツール</h1>
-            <p>母材を選び、添加濃度と秤量値をセットごとにまとめて管理できます。</p>
+            <p>母体材料を選び、添加濃度と秤量値をセットごとにまとめて管理できます。</p>
           </div>
           <div className="current-compound-card">
-            <span>現在の母材</span>
+            <span>現在の母体材料</span>
             <strong>{compound.formula}</strong>
           </div>
         </section>
@@ -422,15 +441,26 @@ function MainComponent() {
         <div className="workspace-grid">
           <aside className="settings-panel" aria-label="計算設定">
             <div className="setting-field">
-              <span className="setting-label">化合物（母材）</span>
-              <div className="compound-toggle">
+              <span className="setting-label">母体材料</span>
+              <div className={`compound-toggle ${selectedCompound === "gdvo4" ? "is-second-selected" : ""}`} role="radiogroup" aria-label="母体材料">
                 {Object.values(COMPOUNDS).map((item) => (
                   <button
                     type="button"
                     key={item.key}
-                    aria-pressed={selectedCompound === item.key}
+                    id={`compound-${item.key}`}
+                    role="radio"
+                    aria-checked={selectedCompound === item.key}
                     className={selectedCompound === item.key ? "is-selected" : ""}
                     onClick={() => switchCompound(item.key)}
+                    onKeyDown={(event) => {
+                      const previousKeys = ["ArrowLeft", "ArrowUp", "Home"];
+                      const nextKeys = ["ArrowRight", "ArrowDown", "End"];
+                      if (!previousKeys.includes(event.key) && !nextKeys.includes(event.key)) return;
+                      event.preventDefault();
+                      const nextKey = previousKeys.includes(event.key) ? "yvo4" : "gdvo4";
+                      switchCompound(nextKey);
+                      requestAnimationFrame(() => document.getElementById(`compound-${nextKey}`)?.focus());
+                    }}
                   >
                     {item.formula}
                   </button>
@@ -495,7 +525,7 @@ function MainComponent() {
               </div>
 
               <div className="element-group">
-                <h3>希土類元素（母材サイト置換）</h3>
+                <h3>希土類元素（母体材料サイト置換）</h3>
                 <div className="element-grid">
                   {availableRareEarths.map((element) => (
                     <ElementButton
@@ -515,7 +545,7 @@ function MainComponent() {
                   selected={selectedDopants.includes("Bi")}
                   onClick={() => toggleDopant("Bi")}
                 />
-                <p className="info-note"><span aria-hidden="true">i</span>Biは希土類元素ではありませんが、母材サイトを置換します。</p>
+                <p className="info-note"><span aria-hidden="true">i</span>Biは希土類元素ではありませんが、母体材料サイトを置換します。</p>
               </div>
 
               {showMaterials && (
@@ -531,14 +561,14 @@ function MainComponent() {
               <div className="section-heading">
                 <div>
                   <h2>添加濃度（各セット）</h2>
-                  <p>矢印キーまたは±ボタンで {concentrationStep.toFixed(decimalPlaces)}% ずつ調整できます。</p>
+                  <p>矢印キーまたは±ボタンで {formatPercentage(concentrationStep)}% ずつ調整できます。</p>
                 </div>
-                <span className="host-balance-label">母材酸化物 {compound.hostOxide}</span>
+                <span className="host-balance-label">母体材料の酸化物 {compound.hostOxide}</span>
               </div>
 
               <div className="concentration-table" role="table" aria-label="添加濃度">
                 <div className="concentration-header" role="row">
-                  <span>セット</span><span>濃度（%）</span><span>母材比率</span>
+                  <span>セット</span><span>濃度（%）</span><span>母体材料比率</span>
                 </div>
                 {setNumbers.map((setNumber) => (
                   <div className="concentration-row" role="row" key={setNumber}>
@@ -570,7 +600,7 @@ function MainComponent() {
                         </label>
                       ))}
                     </div>
-                    <span className="host-balance">{compound.hostElement} {(100 - substitutionTotal(setNumber)).toFixed(decimalPlaces)}%</span>
+                    <span className="host-balance">{compound.hostElement} {formatPercentage(100 - substitutionTotal(setNumber))}%</span>
                   </div>
                 ))}
               </div>
@@ -600,7 +630,7 @@ function MainComponent() {
                 <article className="result-set" key={setNumber}>
                   <div className="result-set-title">
                     <h3>セット {setNumber}</h3>
-                    <span>{selectedDopants.length ? selectedDopants.map((element) => `${element} ${concentrationSets[setNumber]?.[element] || 0}%`).join(" / ") : "純粋系"}</span>
+                    <span>{selectedDopants.length ? selectedDopants.map((element) => `${element} ${formatPercentage(concentrationSets[setNumber]?.[element] || 0)}%`).join(" / ") : "純粋系"}</span>
                   </div>
                   <div className="result-table" role="table" aria-label={`セット ${setNumber} の秤量結果`}>
                     <div className="result-header" role="row">
@@ -635,19 +665,22 @@ function MainComponent() {
                             ぴったり
                           </button>
                         </div>
-                        <label className="weighted-check">
-                          <input
-                            aria-label={`セット ${setNumber} ${material} 秤量済み`}
-                            type="checkbox"
-                            checked={Boolean(weightedMaterials[setNumber]?.[material])}
-                            onChange={() => toggleWeighted(setNumber, material)}
-                          />
-                          <span>完了</span>
-                        </label>
-                        <div className="fine-adjustment" aria-label="実測値を微調整">
-                          <button type="button" aria-label={`${material}を減らす`} onClick={() => adjustMeasuredValue(setNumber, material, -1)}>−</button>
-                          <span>{concentrationStep.toFixed(decimalPlaces)}</span>
-                          <button type="button" aria-label={`${material}を増やす`} onClick={() => adjustMeasuredValue(setNumber, material, 1)}>＋</button>
+                        <div className="adjustment-field">
+                          <span className="mobile-only-label">微調整</span>
+                          <div className="fine-adjustment" aria-label="実測値を微調整">
+                            <button type="button" aria-label={`${material}を減らす`} onClick={() => adjustMeasuredValue(setNumber, material, -1)}>−</button>
+                            <span>{formatPercentage(concentrationStep)}</span>
+                            <button type="button" aria-label={`${material}を増やす`} onClick={() => adjustMeasuredValue(setNumber, material, 1)}>＋</button>
+                          </div>
+                          <label className="weighted-check">
+                            <input
+                              aria-label={`セット ${setNumber} ${material} 秤量済み`}
+                              type="checkbox"
+                              checked={Boolean(weightedMaterials[setNumber]?.[material])}
+                              onChange={() => toggleWeighted(setNumber, material)}
+                            />
+                            <span>完了</span>
+                          </label>
                         </div>
                       </div>
                     ))}
@@ -670,7 +703,7 @@ function MainComponent() {
                 {showDetails ? "計算条件を閉じる" : "計算条件を確認"}
               </button>
               {showDetails && (
-                <p className="calculation-note">希土類元素とBiはいずれも母材サイトを置換するものとして、設定濃度を母材量から差し引いて計算します。</p>
+                <p className="calculation-note">希土類元素とBiはいずれも母体材料サイトを置換するものとして、設定濃度を母体材料の量から差し引いて計算します。</p>
               )}
             </div>
           </section>

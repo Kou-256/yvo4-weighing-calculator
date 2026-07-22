@@ -1,9 +1,27 @@
 import './globals.css'
 
 export const metadata = {
-  title: 'Weighing Calculator | Kou Hashizume',
+  metadataBase: new URL('https://weighing-calculator.vercel.app'),
+  title: 'YVO₄ / GdVO₄ 秤量計算ツール',
   description: 'YVO₄ / GdVO₄合成用の秤量計算・記録ツール',
-  authors: [{ name: 'Kou Hashizume' }],
+  applicationName: 'YVO₄ / GdVO₄ 秤量計算ツール',
+  creator: 'YVO₄ / GdVO₄ 秤量計算ツール',
+  publisher: 'YVO₄ / GdVO₄ 秤量計算ツール',
+  openGraph: {
+    type: 'website',
+    locale: 'ja_JP',
+    url: '/yvo4-gdvo4',
+    siteName: 'YVO₄ / GdVO₄ 秤量計算ツール',
+    title: 'YVO₄ / GdVO₄ 秤量計算ツール',
+    description: '小数桁数とセット数を自由に設定できるYVO₄ / GdVO₄合成用の秤量計算ツール',
+    images: [{ url: '/yvo4_gdvo4_weighing_icon_preview.png', width: 512, height: 512, alt: 'YVO₄ / GdVO₄ 秤量計算ツール' }],
+  },
+  twitter: {
+    card: 'summary',
+    title: 'YVO₄ / GdVO₄ 秤量計算ツール',
+    description: '小数桁数とセット数を自由に設定できるYVO₄ / GdVO₄合成用の秤量計算ツール',
+    images: ['/yvo4_gdvo4_weighing_icon_preview.png'],
+  },
   manifest: '/site.webmanifest',
   icons: {
     icon: [
