@@ -61,6 +61,7 @@ const MATERIALS = {
 const BASE_METAL_MOL = 0.004;
 const DEFAULT_SET_COUNT = 4;
 const DEFAULT_DECIMAL_PLACES = 4;
+const DEFAULT_ADJUSTMENT_STEP = "0.0001";
 
 const STORAGE_KEYS = {
   selectedCompound: "weighing_selectedCompound",
@@ -71,6 +72,7 @@ const STORAGE_KEYS = {
   weightedMaterials: "weighing_weightedMaterials",
   setCount: "weighing_setCount",
   decimalPlaces: "weighing_decimalPlaces",
+  adjustmentStep: "weighing_adjustmentStep",
 };
 
 const makeSetNumbers = (count) =>
@@ -102,6 +104,70 @@ const formatDisplayNumber = (value, maxDecimalPlaces) => {
   const fixedValue = rounded.toFixed(precision);
   return fixedValue.includes(".") ? fixedValue.replace(/0+$/, "").replace(/\.$/, "") : fixedValue;
 };
+
+const decimalLength = (value) => {
+  const normalized = String(value).toLowerCase();
+  if (normalized.includes("e-")) return Number(normalized.split("e-")[1]) || 0;
+  return normalized.includes(".") ? normalized.split(".")[1].length : 0;
+};
+
+function CalculationBreakdown({ compound, results, selectedDopants, concentrationSets, setNumbers, targetMol, formatValue, formatPercentage }) {
+  const targetMetalMol = Number(targetMol);
+
+  return (
+    <div className="calculation-breakdown">
+      <p className="calculation-intro">
+        酸化物1 molには対象元素が2 mol含まれるため、元素の必要モル数を2で割り、各酸化物の分子量を掛けて秤量値を求めます。
+      </p>
+      {setNumbers.map((setNumber) => {
+        const result = results[setNumber];
+        const substitutions = selectedDopants.map((element) => ({
+          element,
+          concentration: Number(concentrationSets[setNumber]?.[element] || 0),
+        }));
+        const substitutionTotal = substitutions.reduce((sum, item) => sum + item.concentration, 0);
+        const hostConcentration = 100 - substitutionTotal;
+        const subtractionText = substitutions.length
+          ? substitutions.map((item) => `${item.element} ${formatPercentage(item.concentration)}%`).join(" + ")
+          : "0%";
+
+        return (
+          <section className="calculation-set" key={setNumber} aria-labelledby={`calculation-set-${setNumber}`}>
+            <div className="calculation-set-heading">
+              <h4 id={`calculation-set-${setNumber}`}>セット {setNumber}</h4>
+              <span>{compound.hostElement} {formatPercentage(hostConcentration)}%</span>
+            </div>
+            <p className="host-calculation">
+              母体材料比率：100% −（{subtractionText}）= {formatPercentage(hostConcentration)}%
+            </p>
+            <div className="calculation-equations">
+              {Object.entries(result.masses).map(([material, mass]) => {
+                const additive = selectedDopants.find((element) => ALL_ADDITIVES[element] === material);
+                const concentration = material === "V₂O₅"
+                  ? 100
+                  : material === compound.hostOxide
+                    ? hostConcentration
+                    : Number(concentrationSets[setNumber]?.[additive] || 0);
+                const molarMass = MATERIALS[material];
+                const formula = material === "V₂O₅"
+                  ? `${formatDisplayNumber(targetMetalMol, 8)} mol ÷ 2 × ${formatDisplayNumber(molarMass, 8)} g/mol`
+                  : `${formatDisplayNumber(targetMetalMol, 8)} mol × ${formatPercentage(concentration)}% ÷ 100 ÷ 2 × ${formatDisplayNumber(molarMass, 8)} g/mol`;
+
+                return (
+                  <div className="calculation-equation" key={material}>
+                    <strong>{material}</strong>
+                    <span>{formula}</span>
+                    <b>= {formatValue(mass)} g</b>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
 
 function StepperChevron({ direction }) {
   const path = direction === "up" ? "M4 10l4-4 4 4" : "M4 6l4 4 4-4";
@@ -157,6 +223,7 @@ function MainComponent() {
   const [targetMol, setTargetMol] = React.useState("0.004");
   const [setCount, setSetCount] = React.useState(DEFAULT_SET_COUNT);
   const [decimalPlaces, setDecimalPlaces] = React.useState(DEFAULT_DECIMAL_PLACES);
+  const [adjustmentStep, setAdjustmentStep] = React.useState(DEFAULT_ADJUSTMENT_STEP);
   const [concentrationSets, setConcentrationSets] = React.useState(() => makeEmptySets(DEFAULT_SET_COUNT));
   const [measuredValues, setMeasuredValues] = React.useState(() => makeEmptySets(DEFAULT_SET_COUNT));
   const [weightedMaterials, setWeightedMaterials] = React.useState(() => makeEmptySets(DEFAULT_SET_COUNT));
@@ -175,6 +242,8 @@ function MainComponent() {
   const selectedRareEarths = selectedDopants.filter((element) => element in RARE_EARTH_DOPANTS);
   const selectedOtherSubstituents = selectedDopants.filter((element) => element in OTHER_SUBSTITUENTS);
   const concentrationStep = 10 ** -decimalPlaces;
+  const adjustmentStepNumber = Number(adjustmentStep) > 0 ? Number(adjustmentStep) : Number(DEFAULT_ADJUSTMENT_STEP);
+  const adjustmentPrecision = Math.min(8, Math.max(decimalPlaces, decimalLength(adjustmentStep)));
 
   React.useEffect(() => {
     try {
@@ -190,6 +259,8 @@ function MainComponent() {
       setSelectedCompound(initialCompound);
       setSelectedDopants(parsedDopants);
       setTargetMol(localStorage.getItem(STORAGE_KEYS.targetMol) || "0.004");
+      const savedAdjustmentStep = localStorage.getItem(STORAGE_KEYS.adjustmentStep);
+      setAdjustmentStep(savedAdjustmentStep && Number(savedAdjustmentStep) > 0 ? savedAdjustmentStep : DEFAULT_ADJUSTMENT_STEP);
       setConcentrationSets(normalizeSets(JSON.parse(localStorage.getItem(STORAGE_KEYS.concentrationSets) || "{}"), savedCount));
       setMeasuredValues(normalizeSets(JSON.parse(localStorage.getItem(STORAGE_KEYS.measuredValues) || "{}"), savedCount));
       setWeightedMaterials(normalizeSets(JSON.parse(localStorage.getItem(STORAGE_KEYS.weightedMaterials) || "{}"), savedCount));
@@ -208,12 +279,13 @@ function MainComponent() {
       [STORAGE_KEYS.targetMol]: targetMol,
       [STORAGE_KEYS.setCount]: String(setCount),
       [STORAGE_KEYS.decimalPlaces]: String(decimalPlaces),
+      [STORAGE_KEYS.adjustmentStep]: adjustmentStep,
       [STORAGE_KEYS.concentrationSets]: JSON.stringify(concentrationSets),
       [STORAGE_KEYS.measuredValues]: JSON.stringify(measuredValues),
       [STORAGE_KEYS.weightedMaterials]: JSON.stringify(weightedMaterials),
     };
     Object.entries(values).forEach(([key, value]) => localStorage.setItem(key, value));
-  }, [isHydrated, selectedCompound, selectedDopants, targetMol, setCount, decimalPlaces, concentrationSets, measuredValues, weightedMaterials]);
+  }, [isHydrated, selectedCompound, selectedDopants, targetMol, setCount, decimalPlaces, adjustmentStep, concentrationSets, measuredValues, weightedMaterials]);
 
   const updateSetCount = (nextCount) => {
     setSetCount(nextCount);
@@ -337,7 +409,21 @@ function MainComponent() {
 
   const adjustMeasuredValue = (setNumber, material, direction) => {
     const current = Number(measuredValues[setNumber]?.[material] || 0);
-    updateMeasuredValue(setNumber, material, Math.max(0, current + concentrationStep * direction).toFixed(decimalPlaces));
+    const factor = 10 ** adjustmentPrecision;
+    const next = Math.max(0, Math.round((current + adjustmentStepNumber * direction + Number.EPSILON) * factor) / factor);
+    updateMeasuredValue(setNumber, material, next.toFixed(adjustmentPrecision));
+  };
+
+  const updateAdjustmentStep = (rawValue) => {
+    const normalized = rawValue.replace(",", ".");
+    if (!/^\d*(?:\.\d{0,8})?$/.test(normalized)) return;
+    setAdjustmentStep(normalized);
+  };
+
+  const normalizeAdjustmentStep = () => {
+    if (!Number.isFinite(Number(adjustmentStep)) || Number(adjustmentStep) <= 0) {
+      setAdjustmentStep(DEFAULT_ADJUSTMENT_STEP);
+    }
   };
 
   const matchCalculatedValue = (setNumber, material, calculated) => {
@@ -360,6 +446,7 @@ function MainComponent() {
     setTargetMol("0.004");
     setSetCount(DEFAULT_SET_COUNT);
     setDecimalPlaces(DEFAULT_DECIMAL_PLACES);
+    setAdjustmentStep(DEFAULT_ADJUSTMENT_STEP);
     setConcentrationSets(makeEmptySets(DEFAULT_SET_COUNT));
     setMeasuredValues(makeEmptySets(DEFAULT_SET_COUNT));
     setWeightedMaterials(makeEmptySets(DEFAULT_SET_COUNT));
@@ -624,6 +711,7 @@ function MainComponent() {
               </div>
               <button type="button" className="secondary-button csv-button" onClick={exportToCSV}>CSV出力</button>
             </div>
+            <p className="adjustment-guide">微調整の中央の数値を変更すると、±ボタンと実測値の矢印キーの増減幅が変わります。</p>
 
             <div className="result-set-list">
               {setNumbers.map((setNumber) => (
@@ -646,7 +734,7 @@ function MainComponent() {
                             aria-label={`セット ${setNumber} ${material} 実測値`}
                             type="number"
                             min="0"
-                            step={concentrationStep}
+                            step={adjustmentStepNumber}
                             value={measuredValues[setNumber]?.[material] ?? ""}
                             placeholder={formatValue(calculated)}
                             onChange={(event) => updateMeasuredValue(setNumber, material, event.target.value)}
@@ -669,7 +757,17 @@ function MainComponent() {
                           <span className="mobile-only-label">微調整</span>
                           <div className="fine-adjustment" aria-label="実測値を微調整">
                             <button type="button" aria-label={`${material}を減らす`} onClick={() => adjustMeasuredValue(setNumber, material, -1)}>−</button>
-                            <span>{formatPercentage(concentrationStep)}</span>
+                            <input
+                              aria-label="微調整幅（g）"
+                              type="text"
+                              inputMode="decimal"
+                              value={adjustmentStep}
+                              onChange={(event) => updateAdjustmentStep(event.target.value)}
+                              onBlur={normalizeAdjustmentStep}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") event.currentTarget.blur();
+                              }}
+                            />
                             <button type="button" aria-label={`${material}を増やす`} onClick={() => adjustMeasuredValue(setNumber, material, 1)}>＋</button>
                           </div>
                           <label className="weighted-check">
@@ -703,7 +801,16 @@ function MainComponent() {
                 {showDetails ? "計算条件を閉じる" : "計算条件を確認"}
               </button>
               {showDetails && (
-                <p className="calculation-note">希土類元素とBiはいずれも母体材料サイトを置換するものとして、設定濃度を母体材料の量から差し引いて計算します。</p>
+                <CalculationBreakdown
+                  compound={compound}
+                  results={results}
+                  selectedDopants={selectedDopants}
+                  concentrationSets={concentrationSets}
+                  setNumbers={setNumbers}
+                  targetMol={targetMol}
+                  formatValue={formatValue}
+                  formatPercentage={formatPercentage}
+                />
               )}
             </div>
           </section>

@@ -31,7 +31,7 @@ body {
   font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "YuGothic", "Meiryo", system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
   font-synthesis: none;
-  font-weight: 300;
+  font-weight: 400;
 }
 
 strong,
@@ -112,7 +112,7 @@ a:focus-visible {
 .page-brand-copy small {
   color: var(--muted);
   font-size: 0.74rem;
-  font-weight: 300;
+  font-weight: 400;
 }
 
 .app-header,
@@ -155,7 +155,7 @@ a:focus-visible {
   margin: 10px 0 0;
   color: var(--muted);
   font-size: 0.98rem;
-  font-weight: 300;
+  font-weight: 400;
   line-height: 1.8;
 }
 
@@ -172,7 +172,7 @@ a:focus-visible {
 .current-compound-card span {
   color: var(--muted);
   font-size: 0.86rem;
-  font-weight: 300;
+  font-weight: 400;
 }
 
 .current-compound-card strong { font-size: 1.65rem; font-weight: 600; }
@@ -209,7 +209,7 @@ a:focus-visible {
 .setting-help {
   color: var(--muted);
   font-size: 0.8rem;
-  font-weight: 300;
+  font-weight: 400;
 }
 
 .compound-toggle {
@@ -256,6 +256,11 @@ a:focus-visible {
 
 .compound-toggle button.is-selected {
   color: var(--accent);
+  background: transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .compound-toggle button:not(.is-selected):hover { color: var(--accent); }
 }
 
 .unit-field,
@@ -395,7 +400,7 @@ a:focus-visible {
 .element-button:focus:not(:focus-visible) { outline: none; }
 
 @media (hover: hover) and (pointer: fine) {
-  .element-button:hover { border-color: var(--accent); color: var(--accent); }
+  .element-button:not(.is-selected):hover { border-color: var(--accent); color: var(--accent); }
 }
 
 .other-elements > .element-button { min-width: 76px; }
@@ -445,7 +450,7 @@ a:focus-visible {
 }
 
 .molar-mass-list strong { color: var(--text); font-size: 0.82rem; }
-.host-balance-label { color: var(--muted); font-size: 0.75rem; font-weight: 300; }
+.host-balance-label { color: var(--muted); font-size: 0.75rem; font-weight: 400; }
 
 .concentration-table {
   margin-top: 16px;
@@ -580,6 +585,14 @@ a:focus-visible {
 .results-heading { align-items: center; }
 .results-heading p { font-size: 0.9rem; }
 .csv-button { min-width: 112px; }
+.adjustment-guide {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
 .result-set-list { margin-top: 16px; }
 
 .result-set {
@@ -590,7 +603,7 @@ a:focus-visible {
 .result-set:first-child { border-top: 0; padding-top: 0; }
 .result-set-title { align-items: baseline; }
 .result-set-title h3 { font-size: 1.08rem; font-weight: 600; }
-.result-set-title span { color: var(--muted); font-size: 0.8rem; font-weight: 300; }
+.result-set-title span { color: var(--muted); font-size: 0.8rem; font-weight: 400; }
 
 .result-table { margin-top: 10px; }
 .result-header { display: none; }
@@ -618,7 +631,7 @@ a:focus-visible {
   gap: 8px;
 }
 
-.mobile-only-label { display: block; color: var(--muted); font-size: 0.8rem; font-weight: 600; }
+.mobile-only-label { display: block; color: var(--muted); font-size: 0.8rem; font-weight: 500; }
 
 .measured-field input {
   width: 100%;
@@ -629,6 +642,7 @@ a:focus-visible {
   padding: 0 10px;
   color: var(--text);
   background: var(--surface);
+  font-weight: 500;
   text-align: right;
   outline: 0;
 }
@@ -674,7 +688,7 @@ a:focus-visible {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='m5 10 3 3 7-7' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-.weighted-check span { color: var(--muted); font-size: 0.8rem; font-weight: 300; }
+.weighted-check span { color: var(--muted); font-size: 0.8rem; font-weight: 400; }
 
 .fine-adjustment {
   display: grid;
@@ -689,12 +703,19 @@ a:focus-visible {
   background: var(--surface);
 }
 
-.fine-adjustment span {
+.fine-adjustment input {
   display: grid;
+  width: 100%;
+  min-width: 0;
+  border: 0;
   place-items: center;
-  color: var(--muted);
-  font-size: 0.7rem;
-  font-weight: 300;
+  padding: 0 4px;
+  color: var(--text);
+  background: var(--surface);
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-align: center;
+  outline: 0;
 }
 
 .fine-adjustment button:first-child { border-left: 0; border-right: 1px solid var(--border); }
@@ -726,15 +747,65 @@ a:focus-visible {
 .reagent-section dt { color: var(--muted); font-size: 0.68rem; }
 .reagent-section dd { margin: 4px 0 0; font-size: 0.82rem; font-weight: 600; }
 
-.calculation-note {
+.calculation-breakdown {
+  display: grid;
+  gap: 12px;
+}
+
+.calculation-intro {
   margin: 0;
-  padding: 11px 12px;
+  padding: 12px 14px;
   border-radius: 10px;
-  color: var(--muted);
+  color: var(--text);
   background: var(--accent-soft);
-  font-size: 0.78rem;
+  font-size: 0.82rem;
+  font-weight: 500;
   line-height: 1.7;
 }
+
+.calculation-set {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+}
+
+.calculation-set-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.calculation-set-heading h4 { margin: 0; font-size: 0.95rem; font-weight: 600; }
+.calculation-set-heading span { color: var(--accent); font-size: 0.8rem; font-weight: 600; }
+
+.host-calculation {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.calculation-equations { display: grid; gap: 7px; }
+
+.calculation-equation {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.calculation-equation strong { font-size: 0.82rem; font-weight: 600; }
+.calculation-equation span { color: var(--muted); font-size: 0.76rem; font-weight: 400; line-height: 1.5; }
+.calculation-equation b { font-size: 0.82rem; font-weight: 600; white-space: nowrap; }
 
 footer {
   display: flex;
@@ -796,6 +867,8 @@ footer a:hover { text-decoration: underline; }
   .measured-field input { min-width: 104px; }
   .fine-adjustment { min-width: 104px; grid-template-columns: 36px minmax(0, 1fr) 36px; }
   .match-button { min-width: 68px; padding: 0 9px; }
+  .calculation-equation { grid-template-columns: minmax(0, 1fr) auto; }
+  .calculation-equation span { grid-column: 1 / -1; grid-row: 2; }
 }
 
 @media (max-width: 370px) {
